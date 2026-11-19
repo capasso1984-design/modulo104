@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.20";
+const VERSIONE = "3.21";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -1016,7 +1016,7 @@ async function preparaVedi(pid, anno, mese) {
   const titolo = `${MESI[mese - 1]} ${anno}`;
   vediCorrente = { pid, anno, mese, blob, titolo, url: cv.toDataURL("image/png"),
     nome: `Planning ${titolo} - ${anag().cognome || ""}`.replace(/[<>:"/\|?*]/g, "-") + ".png",
-    testo: `${titolo} · ${d.richiedente}` + p104.map((x) => `\n${x.et}: ${x.giorni.map((g) => pad2(g)).join(", ")}`).join("") + (false ? `
+    testo: `${titolo} · ${d.richiedente}` + p104.map((x) => `\n${x.et}: ${[...x.giorni].sort((a, b) => a - b).map((g) => pad2(g)).join(", ")}`).join("") + (false ? `
 104: ${d.giorni.map((g) => pad2(g)).join(", ")}` : "") + (d.g151.length ? `
 151: ${d.g151.map((g) => pad2(g)).join(", ")}` : "") + (d.turni.length ? `
 Turni: ${d.turni.join(", ")}` : "") };
