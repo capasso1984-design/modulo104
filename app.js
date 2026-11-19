@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "2.8";
+const VERSIONE = "2.9";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -341,9 +341,28 @@ function impostaModo(no) {
   $("modo-si").setAttribute("aria-checked", String(!no)); $("modo-no").setAttribute("aria-checked", String(no));
   document.querySelectorAll("#s-compila .solo-si").forEach((e) => (e.style.display = no ? "none" : ""));
   document.querySelectorAll("#s-compila .solo-no").forEach((e) => (e.style.display = no ? "" : "none"));
-  if (no && !$("motivo").value.trim()) $("motivo").value = anag().motivo_def || MOTIVO_PREDEFINITO;
+  if (no) mostraMotivo();
   totale();
 }
+// motivo: si vede in sola lettura; con la matita si modifica e si salva per le volte successive
+function motivoSalvato() { return anag().motivo_def || MOTIVO_PREDEFINITO; }
+function mostraMotivo() {
+  $("motivo").value = motivoSalvato();
+  $("motivo-testo").textContent = motivoSalvato();
+  $("motivo-vista").style.display = "flex"; $("motivo-modifica").style.display = "none";
+}
+$("b-mod-motivo").addEventListener("click", () => {
+  $("motivo").value = motivoSalvato();
+  $("motivo-vista").style.display = "none"; $("motivo-modifica").style.display = "block";
+  $("motivo").focus();
+});
+$("b-motivo-annulla").addEventListener("click", mostraMotivo);
+$("b-motivo-salva").addEventListener("click", () => {
+  const t = $("motivo").value.trim();
+  if (!t) { toast("Scrivi il motivo"); return; }
+  const a = mem.get("m104_anag", {}); a.motivo_def = t;
+  if (mem.set("m104_anag", a)) { const campo = $("an-motivo_def"); if (campo) campo.value = t; mostraMotivo(); toast("Motivo salvato ✔ Lo ritroverai le prossime volte"); }
+});
 $("modo-si").addEventListener("click", () => impostaModo(false));
 $("modo-no").addEventListener("click", () => impostaModo(true));
 function leggiMese() {

@@ -114,6 +114,10 @@ input[type=range]{padding:0;border:0;background:none;accent-color:var(--pri)}
 .scelta2{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--card);border-radius:16px;padding:5px;box-shadow:0 6px 18px rgba(20,40,80,.07)}
 .scelta2__voce{font:inherit;font-weight:800;font-size:.95rem;border:0;border-radius:12px;padding:.85rem .4rem;background:transparent;color:var(--pri);cursor:pointer}
 .scelta2__voce.on{background:var(--pri);color:#fff}
+.motivo-vista{display:flex;gap:.7rem;align-items:flex-start;background:rgba(var(--pri-rgb),.05);border-radius:12px;padding:.7rem .8rem}
+.motivo-vista p{margin:0;flex:1;font-size:.95rem;line-height:1.45}
+.shub__azione{width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(var(--pri-rgb),.28);background:var(--card);color:var(--pri);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none;padding:0}
+.shub__azione .sic{width:18px;height:18px}
 #toast{position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));background:#1b2a41;color:#fff;padding:12px 14px;border-radius:12px;display:none;z-index:9;box-shadow:0 8px 20px rgba(0,0,0,.25)}
 </style>
 </head>
@@ -231,8 +235,16 @@ input[type=range]{padding:0;border:0;background:none;accent-color:var(--pri)}
   </div>
   <div class="card solo-no" style="display:none">
     <h2>Motivo</h2>
-    <p class="muted">Va nel modulo dopo «…non richiede i permessi … in quanto». È già scritto quello dell'Anagrafica: cambialo qui solo se questo mese serve un motivo diverso.</p>
-    <textarea id="motivo" rows="4"></textarea>
+    <p class="muted">Va nel modulo dopo «…non richiede i permessi … in quanto».</p>
+    <div class="motivo-vista" id="motivo-vista">
+      <p id="motivo-testo"></p>
+      <button class="shub__azione" id="b-mod-motivo" aria-label="Modifica il motivo" title="Modifica"><svg class="sic"><use href="#i-penna"/></svg></button>
+    </div>
+    <div id="motivo-modifica" style="display:none">
+      <textarea id="motivo" rows="5"></textarea>
+      <div class="row"><button class="btn sec" id="b-motivo-annulla">Annulla</button><button class="btn" id="b-motivo-salva">Salva</button></div>
+      <p class="muted">Il testo salvato verrà proposto anche le prossime volte (lo trovi anche in Anagrafica).</p>
+    </div>
   </div>
   <button class="btn" id="b-crea">Crea PDF</button>
   <div class="card" id="risultato" style="display:none">
@@ -382,7 +394,7 @@ input[type=range]{padding:0;border:0;background:none;accent-color:var(--pri)}
 <script src="pdf-lib.min.js"></script>
 <script src="word.js?v=2.4"></script>
 <script src="firma.js?v=2.7"></script>
-<script src="app.js?v=2.8"></script>
+<script src="app.js?v=2.9"></script>
 <script src="prepara.js?v=2.8"></script>
 </body>
 </html>
