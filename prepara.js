@@ -12,6 +12,7 @@
     ["var:mese", "Mese"], ["var:anno", "Anno"], ["var:mese_anno", "Mese e anno"],
     ["var:giorni_lettere", "Numero giorni in lettere"], ["var:giorni_numero", "Numero giorni in cifre"],
     ["var:data_compilazione", "Data di compilazione"], ["var:motivo", "Motivo (se non chiedi permessi)"],
+    ["var:motivo2", "Motivo: seconda riga"], ["var:motivo3", "Motivo: terza riga"],
   ];
   for (let i = 1; i <= 3; i++) OPZ_CAMPO.push([`var:dal${i}`, `Periodo ${i}: dal`], [`var:al${i}`, `Periodo ${i}: al`]);
   for (let i = 1; i <= 8; i++) OPZ_CAMPO.push([`var:og${i}_giorno`, `Permesso orario ${i}: giorno`], [`var:og${i}_dalle`, `Permesso orario ${i}: dalle`], [`var:og${i}_alle`, `Permesso orario ${i}: alle`]);
@@ -161,6 +162,11 @@
       else if (/alle ore$/.test(b)) v = nOg >= 1 && nOg <= 8 ? `var:og${nOg}_alle` : "vuoto";
       else if (/,$/.test(b) && b.length < 40) v = "var:data_compilazione";
       else if (coda.includes("in quanto")) v = "var:motivo";
+      // riga di sole lineette subito dopo il motivo: ne è la continuazione
+      if (v === "vuoto" && !c.prima.trim() && campi[campi.indexOf(c) - 1]) {
+        const prec = campi[campi.indexOf(c) - 1].a;
+        if (prec === "var:motivo") v = "var:motivo2"; else if (prec === "var:motivo2") v = "var:motivo3";
+      }
       c.a = v;
     }
   }

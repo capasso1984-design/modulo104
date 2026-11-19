@@ -111,6 +111,9 @@ details summary{cursor:pointer;font-weight:800;padding:.2rem 0;color:var(--pri)}
 .fe-risultato{display:block;max-width:100%;height:auto;margin:.4rem auto 0;border:1px solid var(--line);border-radius:10px;background:#fff}
 input[type=range]{padding:0;border:0;background:none;accent-color:var(--pri)}
 .row .btn{margin-top:.5rem;padding:.7rem .4rem;font-size:.9rem}
+.scelta2{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--card);border-radius:16px;padding:5px;box-shadow:0 6px 18px rgba(20,40,80,.07)}
+.scelta2__voce{font:inherit;font-weight:800;font-size:.95rem;border:0;border-radius:12px;padding:.85rem .4rem;background:transparent;color:var(--pri);cursor:pointer}
+.scelta2__voce.on{background:var(--pri);color:#fff}
 #toast{position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));background:#1b2a41;color:#fff;padding:12px 14px;border-radius:12px;display:none;z-index:9;box-shadow:0 8px 20px rgba(0,0,0,.25)}
 </style>
 </head>
@@ -201,13 +204,17 @@ input[type=range]{padding:0;border:0;background:none;accent-color:var(--pri)}
 <section id="s-compila">
   <button class="indietro" data-vai="s-home"><svg class="sic"><use href="#i-indietro"/></svg>Menu</button>
   <h1 class="shub__titolo">Compila il mese</h1>
-  <div class="card">
+  <div class="scelta2" role="radiogroup" aria-label="Questo mese">
+    <button class="scelta2__voce on" id="modo-si" role="radio" aria-checked="true">📅 Chiedo permessi</button>
+    <button class="scelta2__voce" id="modo-no" role="radio" aria-checked="false">🚫 Non chiedo permessi</button>
+  </div>
+  <div class="card solo-si">
     <h2>Giorni di permesso</h2>
     <p class="muted">Tocca e scegli la data dal calendario. Se è un giorno solo, lascia vuoto "al".</p>
     <div id="periodi"></div>
     <div class="tot" id="totale">Totale giorni: 0</div>
   </div>
-  <div class="card">
+  <div class="card solo-si">
     <details id="det-orari"><summary>Permessi orari (facoltativo)</summary>
       <div class="og muted"><span>Giorno</span><span>Dalle</span><span>Alle</span></div>
       <div id="orari"></div>
@@ -221,8 +228,11 @@ input[type=range]{padding:0;border:0;background:none;accent-color:var(--pri)}
     </div>
     <label for="datacomp">Data di compilazione</label>
     <input id="datacomp" type="date">
-    <label for="motivo">Se questo mese non chiedi permessi, motivo (facoltativo)</label>
-    <input id="motivo" type="text">
+  </div>
+  <div class="card solo-no" style="display:none">
+    <h2>Motivo</h2>
+    <p class="muted">Va nel modulo dopo «…non richiede i permessi … in quanto». È già scritto quello dell'Anagrafica: cambialo qui solo se questo mese serve un motivo diverso.</p>
+    <textarea id="motivo" rows="4"></textarea>
   </div>
   <button class="btn" id="b-crea">Crea PDF</button>
   <div class="card" id="risultato" style="display:none">
@@ -372,7 +382,7 @@ input[type=range]{padding:0;border:0;background:none;accent-color:var(--pri)}
 <script src="pdf-lib.min.js"></script>
 <script src="word.js?v=2.4"></script>
 <script src="firma.js?v=2.7"></script>
-<script src="app.js?v=2.7"></script>
-<script src="prepara.js?v=2.7"></script>
+<script src="app.js?v=2.8"></script>
+<script src="prepara.js?v=2.8"></script>
 </body>
 </html>

@@ -1,13 +1,15 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "2.7";
+const VERSIONE = "2.8";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
 const ANAG = [
   ["grado","Grado (es. PG)"],["categoria","Categoria / specialità (es. OFPS)"],["cognome","Cognome"],["nome","Nome"],
   ["reparto","Reparto (es. Compagnia Protezione delle Forze)"],["assistito","Cognome e nome della persona assistita"],
-  ["parentela","Grado di parentela (es. Padre)"],["extra1","Altro dato fisso 1 (facoltativo)"],["extra2","Altro dato fisso 2 (facoltativo)"]];
+  ["parentela","Grado di parentela (es. Padre)"],["extra1","Altro dato fisso 1 (facoltativo)"],["extra2","Altro dato fisso 2 (facoltativo)"],
+  ["motivo_def","Motivo quando non chiedi permessi (va dopo «in quanto»)"]];
+const MOTIVO_PREDEFINITO = "allo stato non risultano esigenze di assistenza già definite per il mese di riferimento; sarà cura dello scrivente darne tempestiva comunicazione non appena le stesse saranno note.";
 const IMPOST_DEF = {
   a: "", cc: "",
   oggetto: "{grado_nome} - Programmazione permessi L.104/92 {mese_anno} - {periodi}",
@@ -64,7 +66,11 @@ function mostra(id) {
 }
 
 // ---------------------------------------------------------------- anagrafica
-function anag() { return mem.get("m104_anag", {}); }
+function anag() {
+  const a = mem.get("m104_anag", {});
+  if (a.motivo_def && a.motivo_def.startsWith("non sono ancora note esigenze di assistenza per il mese in oggetto")) a.motivo_def = MOTIVO_PREDEFINITO;
+  return a;
+}
 function fissi() {
   const a = anag();
   const f = Object.assign({}, a);
@@ -77,7 +83,8 @@ function costruisciAnag() {
   box.innerHTML = "";
   for (const [k, lab] of ANAG) {
     const l = document.createElement("label"); l.textContent = lab; l.htmlFor = "an-" + k;
-    const i = document.createElement("input"); i.id = "an-" + k; i.value = a[k] || ""; i.autocomplete = "off";
+    const i = document.createElement(k === "motivo_def" ? "textarea" : "input"); i.id = "an-" + k; i.autocomplete = "off";
+    i.value = a[k] || (k === "motivo_def" ? MOTIVO_PREDEFINITO : "");
     i.addEventListener("input", anteprimaNome);
     box.append(l, i);
   }
@@ -327,6 +334,18 @@ function costruisciCompila() {
 }
 // legge una data "aaaa-mm-gg" del calendario
 function dataDa(s) { const [y, m, d] = s.split("-").map(Number); return { y, m, d }; }
+let nonChiedo = false;
+function impostaModo(no) {
+  nonChiedo = no;
+  $("modo-si").classList.toggle("on", !no); $("modo-no").classList.toggle("on", no);
+  $("modo-si").setAttribute("aria-checked", String(!no)); $("modo-no").setAttribute("aria-checked", String(no));
+  document.querySelectorAll("#s-compila .solo-si").forEach((e) => (e.style.display = no ? "none" : ""));
+  document.querySelectorAll("#s-compila .solo-no").forEach((e) => (e.style.display = no ? "" : "none"));
+  if (no && !$("motivo").value.trim()) $("motivo").value = anag().motivo_def || MOTIVO_PREDEFINITO;
+  totale();
+}
+$("modo-si").addEventListener("click", () => impostaModo(false));
+$("modo-no").addEventListener("click", () => impostaModo(true));
 function leggiMese() {
   const periodi = [], orari = [], date = [];
   for (let i = 1; i <= N_PERIODI; i++) {
@@ -351,7 +370,8 @@ function leggiMese() {
   if (!anno || anno < 2000) throw new Error("Anno non valido");
   const dc = $("datacomp").value;
   const data = dc ? dc.split("-").reverse().join("/") : fmt(new Date());
-  return { mese, anno, daDate, periodi: periodi.map(([a, b]) => [a.d, b.d]), orari: orari.map(([d, h1, h2]) => [d.d, h1, h2]), data, motivo: $("motivo").value.trim() };
+  if (nonChiedo) return { mese: +$("mese").value, anno: +$("anno").value, daDate: false, periodi: [], orari: [], data, motivo: $("motivo").value.trim() || anag().motivo_def || MOTIVO_PREDEFINITO };
+  return { mese, anno, daDate, periodi: periodi.map(([a, b]) => [a.d, b.d]), orari: orari.map(([d, h1, h2]) => [d.d, h1, h2]), data, motivo: "" };
 }
 function calcolaValori(m) {
   const v = { mese: MESI[m.mese - 1], anno: String(m.anno), mese_anno: `${MESI[m.mese - 1]} ${m.anno}`, data_compilazione: m.data, motivo: m.motivo };
@@ -424,6 +444,17 @@ async function creaPdf(m, pacchetto = window.M104 && window.M104.attuale()) {
   let firmaImg = null;
   if (firma) firmaImg = await doc.embedPng(b64bytes(firma.split(",")[1]));
   const nero = rgb(0, 0, 0);
+  // il motivo lungo continua sulle righe successive del modulo
+  const righeMotivo = {};
+  {
+    const campiM = ["var:motivo", "var:motivo2", "var:motivo3"].map((k) => pacchetto.campi.find((c) => c.a === k)).filter(Boolean);
+    const parole = String(v.motivo || "").split(/\s+/).filter(Boolean);
+    campiM.forEach((c, i) => {
+      const larg = (c.x2 > c.x ? c.x2 - c.x : 400) - 6, sz = c.size || 10; let riga = "";
+      while (parole.length && (i === campiM.length - 1 || !riga || font.widthOfTextAtSize(pulisciTesto(riga + " " + parole[0], font), sz) <= larg)) riga = (riga + " " + parole.shift()).trim();
+      righeMotivo[c.a] = riga;
+    });
+  }
   for (const c of pacchetto.campi) {
     if (c.regola && !spuntata(c.regola, v)) continue;
     const pg = pagine[(c.pag || 1) - 1]; if (!pg) continue;
@@ -443,7 +474,8 @@ async function creaPdf(m, pacchetto = window.M104 && window.M104.attuale()) {
       continue;
     }
     let val = "";
-    if (c.a.startsWith("fisso:")) val = f[c.a.slice(6)] || "";
+    if (/^var:motivo[23]?$/.test(c.a)) val = righeMotivo[c.a] || "";
+    else if (c.a.startsWith("fisso:")) val = f[c.a.slice(6)] || "";
     else if (c.a.startsWith("var:")) val = v[c.a.slice(4)] || "";
     if (!val) continue;
     const testo = pulisciTesto(val, font);
