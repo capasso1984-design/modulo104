@@ -124,12 +124,12 @@
           campi.push({ pag: p.n, x: a0.x, x2: a1.x + a1.w, b: a0.z.b, size: a0.z.size, t,
             prima: caratteri.slice(0, i0).join("").replace(/[_\s/]+$/, " ").replace(/^\s+$/, ""),
             dopo: caratteri.slice(i0 + n).join(""),
-            sopra: ir > 0 ? righe[ir - 1].testo : "", sp: ir > 0 ? a0.z.b - righe[ir - 1].b : 40 });
+            sopra: ir > 0 ? righe.filter((q) => Math.abs(q.b - righe[ir - 1].b) < 4.5).flatMap((q) => q.pezzi).sort((a, b) => a.x - b.x).map((q) => q.s).join("") : "", sp: ir > 0 ? a0.z.b - righe[ir - 1].b : 40 });
         }
       });
     }
     for (const c of campi) {
-      if (c.prima.trim()) c.sopra = "";
+      // (la riga sopra resta disponibile: serve quando prima dello spazio c'è solo un simbolo)
       c.y = c.b - c.size * 0.86;
     }
     return campi;
@@ -139,7 +139,8 @@
     let nDal = 0, nOg = 0;
     for (const c of campi) {
       if (/^\d+$/.test(c.t)) { c.a = "var:anno"; continue; }   // anno stampato: si aggiorna sempre
-      const b = (c.prima || c.sopra || "").replace(/_+/g, " ").trim().toLowerCase();
+      const corta = c.prima.replace(/[\s_(\[:]/g, "").length < 3;
+      const b = ((corta ? (c.sopra || "") + " " : "") + c.prima).replace(/_+/g, " ").trim().toLowerCase();
       const a = (c.dopo || "").replace(/_+/g, " ").trim().toLowerCase();
       const coda = b.slice(-25);
       let v = "vuoto";
@@ -165,7 +166,15 @@
   }
 
   function testoAccanto(p, r) {
-    return p.pezzi.filter((z) => z.x > r.x + r.w - 1 && Math.abs(z.b - (r.y + r.h)) < 9).sort((a, b) => a.x - b.x).map((z) => z.s).join("").trim();
+    const fondo = r.y + r.h;
+    const cand = p.pezzi.filter((z) => z.x > r.x + r.w - 1 && Math.abs(z.b - fondo) < 9 && z.s.trim());
+    if (!cand.length) return "";
+    const b0 = cand.slice().sort((a, b) => Math.abs(a.b - fondo) - Math.abs(b.b - fondo))[0].b;
+    const riga = p.pezzi.filter((z) => z.x > r.x + r.w - 1 && Math.abs(z.b - b0) < 2.5).sort((a, b) => a.x - b.x);
+    // rimette gli spazi dove tra due pezzi c'è un vuoto
+    let t = "", fine = null;
+    for (const z of riga) { if (fine !== null && z.x - fine > z.size * 0.15 && !/\s$/.test(t) && !/^\s/.test(z.s)) t += " "; t += z.s; fine = z.x + z.w; }
+    return t.replace(/\s+/g, " ").trim();
   }
   function regolaCasella(t) {
     t = t.toLowerCase();
@@ -210,9 +219,9 @@
   }
 
   // ------------------------------------------------------------ interfaccia
-  async function apriPdf(file) {
+  async function apriPdf(file, daWord) {
     const box = $("prep-stato");
-    box.textContent = "Leggo il PDF…";
+    box.textContent = daWord ? "Leggo il modulo impaginato dal Word…" : "Leggo il PDF…";
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
       const pagine = await analizza(bytes);
@@ -220,7 +229,8 @@
       indovinaCampi(campi);
       stato = { nome: file.name.replace(/\.pdf$/i, ""), bytes, pagine, campi, caselle: trovaCaselle(pagine) };
       collegaCaselle();
-      box.textContent = `Trovati ${campi.length} spazi da compilare e ${stato.caselle.length} caselle. Controlla le scelte qui sotto.`;
+      box.textContent = (daWord ? "Impaginato dal Word in A4: controlla che il modulo qui sotto sia a posto. " : "") +
+        `Trovati ${campi.length} spazi da compilare e ${stato.caselle.length} caselle. Controlla le scelte qui sotto.`;
       await disegna();
       elenco();
       $("prep-salva").disabled = false;
@@ -332,6 +342,7 @@
     const f = e.target.files[0]; e.target.value = ""; if (!f) return;
     const box = $("avviso-word2"); box.style.display = "none";
     const tipo = await window.M104.tipoFile(f);
+    if (tipo === "word") { window.M104.apriWord(f, true); return; }
     if (tipo !== "pdf") {
       box.style.display = "block";
       box.innerHTML = tipo === "word"

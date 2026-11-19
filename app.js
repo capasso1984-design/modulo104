@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "1.9";
+const VERSIONE = "2.2";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -183,9 +183,15 @@ async function caricaPacchetto() {
   infoModulo();
 }
 function infoModulo() {
-  $("info-modulo").innerHTML = pacchetto
-    ? `<span class="badge">✔ ${esc(pacchetto.nome)}</span><br><span class="muted">Preparato il ${esc(pacchetto.creato)} · ${pacchetto.campi.length} campi</span>`
-    : "Nessun modulo caricato.";
+  const daPc = pacchetto && pacchetto.origine !== "telefono";
+  $("info-modulo").textContent = pacchetto ? `In uso: «${pacchetto.nome}»` : "Nessun modulo caricato: scegli una delle due strade qui sotto.";
+  const sp = $("stato-pc"), st = $("stato-tel");
+  if (daPc) { sp.className = "stato-mod ok"; sp.innerHTML = `✔ <b>In uso la copia del PC</b><br>«${esc(pacchetto.nome)}» · preparata il ${esc(pacchetto.creato)}${pacchetto.caricato ? " · caricata il " + esc(pacchetto.caricato) : ""}`; }
+  else { sp.className = "stato-mod attesa"; sp.innerHTML = "⏳ <b>Nessuna copia del PC</b><br>In attesa del file .m104 preparato dal PC"; }
+  if (pacchetto && !daPc) { st.className = "stato-mod ok"; st.innerHTML = `✔ <b>In uso il modulo preparato sul telefono</b><br>«${esc(pacchetto.nome)}» · ${esc(pacchetto.creato)}`; }
+  else { st.className = "stato-mod spento"; st.textContent = daPc ? "Non serve: stai usando la copia del PC" : "Nessun modulo preparato sul telefono"; }
+  $("box-anteprima-mod").style.display = pacchetto ? "block" : "none";
+  $("anteprima-mod").style.display = "none";
   $("sottotitolo").textContent = pacchetto ? pacchetto.nome : "Programmazione permessi L.104/92";
 }
 // riconosce il tipo di file dai primi byte, non dal nome (WhatsApp e iCloud a volte cambiano l'estensione)
@@ -205,16 +211,53 @@ function spiegaWord() {
     <li><b>Dal PC:</b> apri l'app "Modulo 104", carica il Word e premi <b>"Prepara per il telefono"</b>: ti dà il file .m104 da caricare qui.</li></ol>`;
   box.scrollIntoView({ behavior: "smooth", block: "center" });
 }
+// Word: l'app lo impagina in A4 e apre la preparazione con l'anteprima
+async function apriWord(f, daPrepara) {
+  toast("Impagino il Word…", 8000);
+  try {
+    const { pdf, scala } = await window.M104word.docxInPdf(new Uint8Array(await f.arrayBuffer()));
+    const nome = f.name.replace(/\.(docx?|dotx)$/i, "");
+    const file = new File([pdf], nome + ".pdf", { type: "application/pdf" });
+    if (!daPrepara) vai("s-prepara");
+    $("prep-nome").value = nome;
+    await window.M104prep.apriPdf(file, true);
+    toast(scala < 1 ? `Word impaginato in A4 (ridotto al ${Math.round(scala * 100)}% per stare in una pagina). Controlla l'anteprima` : "Word impaginato in A4: controlla l'anteprima e le scelte", 6000);
+  } catch (e) {
+    console.error(e);
+    spiegaWord();
+    toast("Non riesco a impaginare questo Word: usa il PDF o il PC", 6000);
+  }
+}
 // chiede conferma prima di sostituire il modulo già in uso
 function confermaSostituzione(nuovo) {
   if (!pacchetto) return true;
   return confirm(`Stai sostituendo il modulo in uso:\n«${pacchetto.nome}» (del ${pacchetto.creato})\n\ncon:\n«${nuovo.nome}» (del ${nuovo.creato})\n\nContinuo?`);
 }
+// riquadro 2: PDF o Word
+$("file-pdfword").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  const tipo = await tipoFile(f);
+  if (tipo === "word") { apriWord(f); return; }
+  if (tipo === "pdf") { vai("s-prepara"); $("prep-nome").value = f.name.replace(/\.pdf$/i, ""); window.M104prep.apriPdf(f); return; }
+  toast(tipo === "m104" ? "Questo è il file del PC: usa il riquadro 1" : "Scegli un PDF o un Word (.docx)", 5000);
+});
+// anteprima del modulo in uso, con i dati dell'anagrafica e date di esempio
+$("b-anteprima-mod").addEventListener("click", async () => {
+  if (!pacchetto) return;
+  const b = $("b-anteprima-mod"); b.disabled = true; b.textContent = "Preparo l'anteprima…";
+  try {
+    const oggi = new Date(), m = { mese: oggi.getMonth() + 1, anno: oggi.getFullYear(), daDate: true, periodi: [[3, 4]], orari: [], data: fmt(oggi), motivo: "" };
+    const r = await creaPdf(m);
+    $("anteprima-mod").style.display = "block";
+    await anteprimaIn($("anteprima-mod"), r.blob);
+  } catch (err) { console.error(err); toast("Anteprima non disponibile"); }
+  b.disabled = false; b.textContent = "👁 Vedi anteprima del modulo";
+});
 $("file-m104").addEventListener("change", async (e) => {
   const f = e.target.files[0]; e.target.value = ""; if (!f) return;
   $("avviso-word").style.display = "none";
   const tipo = await tipoFile(f);
-  if (tipo === "word") { spiegaWord(); return; }
+  if (tipo === "word") { apriWord(f); return; }
   if (tipo === "pdf") {   // un PDF va preparato: lo apro direttamente nella preparazione
     vai("s-prepara"); $("prep-nome").value = f.name.replace(/\.pdf$/i, ""); window.M104prep.apriPdf(f);
     toast("È un PDF: controlla le scelte e salva il modulo"); return;
@@ -457,8 +500,8 @@ async function caricaPdfjs() {
   window.pdfjsLib.GlobalWorkerOptions.workerSrc = "lib/pdf.worker.min.js";
 }
 // mostra il PDF appena creato, così lo controlli prima di inviarlo
-async function anteprima(blob) {
-  const box = $("anteprima");
+async function anteprima(blob) { return anteprimaIn($("anteprima"), blob); }
+async function anteprimaIn(box, blob) {
   box.innerHTML = '<p class="muted">Preparo l’anteprima…</p>';
   try {
     await caricaPdfjs();
@@ -490,7 +533,7 @@ costruisciAnag(); costruisciImpost(); costruisciCompila();
 caricaPacchetto().then(() => mostra(location.hash ? "s-" + location.hash.slice(1) : "s-home"));
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 async function salvaPacchetto(j) { await idbSet("pacchetto", j); pacchetto = j; infoModulo(); aggiornaAvvisi(); }
-window.M104 = { creaPdf, calcolaValori, leggiMese, salvaPacchetto, toast, vai, anteprima, tipoFile, confermaSostituzione, attuale: () => pacchetto };
+window.M104 = { creaPdf, calcolaValori, leggiMese, salvaPacchetto, toast, vai, anteprima, tipoFile, confermaSostituzione, apriWord, attuale: () => pacchetto };
 
 // ---------------------------------------------------------------- condivisione e installazione
 const LINK_APP = location.origin + location.pathname.replace(/index\.html$/, "");

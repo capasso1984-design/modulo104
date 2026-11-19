@@ -102,6 +102,10 @@ details summary{cursor:pointer;font-weight:800;padding:.2rem 0;color:var(--pri)}
 .prep-num--c{background:rgba(255,170,0,.2);color:#a85d00}
 .prep-dx{flex:1;min-width:0;display:flex;flex-direction:column;gap:.3rem}
 .prep-dx small{color:var(--muted);overflow-wrap:anywhere}
+.stato-mod{border-radius:12px;padding:.6rem .8rem;font-size:.92rem;line-height:1.4}
+.stato-mod.ok{background:rgba(var(--ok-rgb),.14)}
+.stato-mod.attesa{background:rgba(var(--warn-rgb),.2)}
+.stato-mod.spento{background:rgba(var(--pri-rgb),.06);color:var(--muted)}
 .formati{display:flex;flex-direction:column;gap:.3rem;background:rgba(var(--pri-rgb),.06);border-radius:12px;padding:.7rem .85rem;font-size:.88rem;margin:.3rem 0}
 #toast{position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));background:#1b2a41;color:#fff;padding:12px 14px;border-radius:12px;display:none;z-index:9;box-shadow:0 8px 20px rgba(0,0,0,.25)}
 </style>
@@ -259,29 +263,40 @@ details summary{cursor:pointer;font-weight:800;padding:.2rem 0;color:var(--pri)}
 <section id="s-modulo">
   <button class="indietro" data-vai="s-home"><svg class="sic"><use href="#i-indietro"/></svg>Menu</button>
   <h1 class="shub__titolo">Modulo da compilare</h1>
+  <p class="shub__sub" id="info-modulo">Nessun modulo caricato.</p>
+
+  <h2 class="shub__sezione">1 · Copia preparata dal PC</h2>
   <div class="card">
-    <p id="info-modulo" class="muted">Nessun modulo caricato.</p>
-    <div class="formati"><b>Formati accettati</b>
-      <span>✅ <b>.m104</b> · il modulo già pronto (dal PC o da un collega)</span>
-      <span>✅ <b>PDF</b> del modulo vuoto · lo prepari qui sul telefono</span>
-      <span>⚠️ <b>Word (.docx)</b> · non direttamente: va prima trasformato in PDF, oppure preparato dal PC</span>
-    </div>
-    <label for="file-m104" class="btn" style="text-transform:none;letter-spacing:0;color:#fff">📄 Scegli il file (.m104 o PDF)</label>
+    <div class="stato-mod" id="stato-pc"></div>
+    <p class="muted">È la strada consigliata: il modulo resta identico all'originale. Il file <b>.m104</b> lo prepara il PC (app "Modulo 104" → "Prepara per il telefono") oppure te lo manda un collega.</p>
+    <label for="file-m104" class="btn" style="text-transform:none;letter-spacing:0;color:#fff">📥 Carica la copia del PC (.m104)</label>
     <input id="file-m104" type="file" style="display:none">
     <div class="avviso" id="avviso-word" style="display:none"></div>
-    <button class="btn sec" data-vai="s-prepara">📱 Non hai il file? Preparalo da un PDF</button>
-    <p class="muted">Il file .m104 si prepara sul PC con l'app "Modulo 104" (pulsante "Prepara per il telefono"), oppure te lo manda un collega. Salvalo (su iPhone in "File") e caricalo da qui. Quando cambia il modulo, carica il nuovo file.</p>
+  </div>
+
+  <h2 class="shub__sezione">2 · Oppure preparalo qui</h2>
+  <div class="card">
+    <div class="stato-mod" id="stato-tel"></div>
+    <p class="muted"><b>PDF</b> del modulo vuoto: resta identico all'originale. <b>Word (.docx)</b>: l'app lo impagina da sola in una pagina A4 (il testo è lo stesso, l'aspetto può differire un po').</p>
+    <label for="file-pdfword" class="btn sec" style="text-transform:none;letter-spacing:0">📄 Carica PDF o Word</label>
+    <input id="file-pdfword" type="file" style="display:none">
+  </div>
+
+  <div class="card" id="box-anteprima-mod" style="display:none">
+    <button class="btn" id="b-anteprima-mod">👁 Vedi anteprima del modulo</button>
+    <p class="muted">L'anteprima usa i tuoi dati e date di esempio, per vedere come verrà il modulo.</p>
+    <div id="anteprima-mod" class="anteprima" style="display:none"></div>
   </div>
 </section>
 
 <!-- PREPARA DA PDF (senza PC) -->
 <section id="s-prepara">
   <button class="indietro" data-vai="s-modulo"><svg class="sic"><use href="#i-indietro"/></svg>Modulo</button>
-  <h1 class="shub__titolo">Prepara da un PDF</h1>
+  <h1 class="shub__titolo">Prepara il modulo</h1>
   <div class="card">
     <p class="muted">Serve il modulo <b>vuoto</b> in PDF. Se hai solo il Word, su iPhone: apri il file in <b>File</b> → <b>Condividi</b> → <b>Stampa</b> → allarga l'anteprima con due dita → <b>Condividi</b> → <b>Salva su File</b>.</p>
-    <p class="muted"><b>Formato accettato:</b> PDF (anche creato da un Word con "Stampa → Salva su File").</p>
-    <label for="prep-file" class="btn" style="text-transform:none;letter-spacing:0;color:#fff">📄 Scegli il PDF del modulo vuoto</label>
+    <p class="muted"><b>Formati accettati:</b> PDF del modulo vuoto (impaginazione identica all'originale) oppure Word .docx (l'app lo impagina da sola in A4: il testo è lo stesso, l'aspetto può differire un po').</p>
+    <label for="prep-file" class="btn" style="text-transform:none;letter-spacing:0;color:#fff">📄 Scegli il modulo vuoto (PDF o Word)</label>
     <input id="prep-file" type="file" style="display:none">
     <div class="avviso" id="avviso-word2" style="display:none"></div>
     <p class="muted" id="prep-stato"></p>
@@ -329,7 +344,8 @@ details summary{cursor:pointer;font-weight:800;padding:.2rem 0;color:var(--pri)}
 </main>
 <div id="toast"></div>
 <script src="pdf-lib.min.js"></script>
-<script src="app.js?v=1.9"></script>
-<script src="prepara.js?v=1.9"></script>
+<script src="word.js?v=2.4"></script>
+<script src="app.js?v=2.2"></script>
+<script src="prepara.js?v=2.4"></script>
 </body>
 </html>
