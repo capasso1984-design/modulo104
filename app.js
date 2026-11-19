@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.10";
+const VERSIONE = "3.11";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -452,8 +452,10 @@ function disegnaCal() {
   for (let i = 0; i < vuoti; i++) { const s = document.createElement("span"); s.className = "cal-g vuoto"; g.append(s); }
   for (let d = 1; d <= nGiorni; d++) {
     const dt = new Date(cal.anno, cal.mese - 1, d), wd = dt.getDay(), we = wd === 0 || wd === 6, fe = fest[`${cal.mese}-${d}`];
-    const b = document.createElement("button"); b.type = "button"; b.textContent = d;
+    const b = document.createElement("button"); b.type = "button";
     const tu = turni.has(d), sc = cal.modo !== "turni" && cal.sel.has(d), premuto = cal.modo === "turni" ? tu : sc;
+    const et = sc ? "104" : tu ? "turno" : "";
+    b.innerHTML = `<span class="cal-n">${d}</span>${et ? `<small class="cal-et">${et}</small>` : ""}`;
     b.className = "cal-g" + (we ? " we" + (blocco ? " bloc" : "") : "") + (fe ? " fe" : "") + (sc ? " sel" : "") + (tu ? " tu" : "") + (dt.toDateString() === oggi.toDateString() ? " oggi" : "");
     b.setAttribute("aria-label", `${NOMI_G[wd]} ${d} ${MESI[cal.mese - 1]}${fe ? ", festivo" : ""}${tu ? ", turno di servizio" : ""}${cal.sel.has(d) ? ", scelto per la 104" : ""}`);
     b.setAttribute("aria-pressed", premuto ? "true" : "false");

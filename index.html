@@ -144,8 +144,8 @@ body.bloccata main{visibility:hidden}
   border-top:1.5px solid rgba(255,255,255,.95);border-left:1px solid rgba(255,255,255,.8);border-right:1px solid rgba(15,138,108,.25);border-bottom:1.5px solid rgba(15,138,108,.45);
   box-shadow:0 2px 3px rgba(15,90,70,.14),0 7px 16px rgba(15,90,70,.22),inset 0 3px 2px #fff,inset 0 -4px 7px rgba(15,90,70,.10)}
 .cal-g.tu.we:not(.sel),.cal-g.tu.fe:not(.sel){color:#9b1c14}.cal-g.tu.bloc{opacity:1}
-.cal-g.tu::after{content:"";position:absolute;left:50%;bottom:5px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:#0f8a6c}
-.cal-g.sel.tu{background:#c2410c;border-color:#c2410c;color:#fff;transform:translateY(-2px);box-shadow:0 7px 16px rgba(194,65,12,.3)}.cal-g.sel.tu::after{background:#fff}
+.cal-g{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05}.cal-et{font-size:.58rem;font-weight:800;letter-spacing:.02em;opacity:.9;margin-top:1px}
+.cal-g.sel.tu{background:#c2410c;border-color:#c2410c;color:#fff;transform:translateY(-2px);box-shadow:0 7px 16px rgba(194,65,12,.3)}
 #s-compila.passo1 .solo-p2,#s-compila.passo2 .solo-p1{display:none!important}
 #s-compila.passo1 .solo-si:not(.solo-p2){display:flex!important}
 .passi{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:-.2rem 0 .1rem}
@@ -555,7 +555,7 @@ body.bloccata main{visibility:hidden}
 <script src="pdf-lib.min.js"></script>
 <script src="word.js?v=2.4"></script>
 <script src="firma.js?v=2.7"></script>
-<script src="app.js?v=3.10"></script>
+<script src="app.js?v=3.11"></script>
 <script src="prepara.js?v=3.0"></script>
 <script src="accesso.js?v=3.0"></script>
 </body>
