@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.0";
+const VERSIONE = "3.1";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -62,6 +62,7 @@ function mostra(id) {
   document.querySelectorAll("section").forEach((s) => s.classList.toggle("on", s.id === id));
   window.scrollTo(0, 0);
   if (id === "s-home") aggiornaAvvisi();
+  if (id === "s-impost") anteprimaEmail();
   if ("s-" + location.hash.slice(1) !== id && !(id === "s-home" && !location.hash)) history.replaceState(null, "", id === "s-home" ? location.pathname : "#" + id.slice(2));
 }
 
@@ -307,10 +308,29 @@ function costruisciImpost() {
   const i = impost();
   $("em-a").value = i.a; $("em-cc").value = i.cc; $("em-ogg").value = i.oggetto; $("em-testo").value = i.testo; $("nomefile").value = i.nomefile;
   $("versione").textContent = "Versione " + VERSIONE;
+  anteprimaEmail();
 }
+// anteprima con i dati veri e un mese di esempio (giorni 3-4 del mese prossimo)
+function anteprimaEmail() {
+  const i = impost(), o = new Date(), p = new Date(o.getFullYear(), o.getMonth() + 1, 1);
+  const dati = Object.assign({}, fissi(), calcolaValori({ mese: p.getMonth() + 1, anno: p.getFullYear(), periodi: [[3, 4]], orari: [], data: fmt(o), motivo: "" }));
+  $("pv-ogg").textContent = riempi(i.oggetto, dati);
+  $("pv-testo").textContent = riempi(i.testo, dati);
+  $("pv-file").textContent = riempi(i.nomefile, dati) + ".pdf";
+  $("em-vista").style.display = ""; $("em-modifica").style.display = "none";
+}
+$("b-mod-email").addEventListener("click", () => {
+  const i = impost(); $("em-ogg").value = i.oggetto; $("em-testo").value = i.testo; $("nomefile").value = i.nomefile;
+  $("em-vista").style.display = "none"; $("em-modifica").style.display = "";
+});
+$("b-annulla-imp").addEventListener("click", anteprimaEmail);
+$("b-ripristina-imp").addEventListener("click", () => {
+  $("em-ogg").value = IMPOST_DEF.oggetto; $("em-testo").value = IMPOST_DEF.testo; $("nomefile").value = IMPOST_DEF.nomefile;
+});
 $("b-salva-imp").addEventListener("click", () => {
-  if (mem.set("m104_impost", { a: $("em-a").value.trim(), cc: $("em-cc").value.trim(), oggetto: $("em-ogg").value, testo: $("em-testo").value, nomefile: $("nomefile").value }))
-    toast("Impostazioni salvate ✔");
+  if (mem.set("m104_impost", { a: $("em-a").value.trim(), cc: $("em-cc").value.trim(), oggetto: $("em-ogg").value, testo: $("em-testo").value, nomefile: $("nomefile").value })) {
+    toast("Salvato ✔"); anteprimaEmail();
+  }
 });
 
 // ---------------------------------------------------------------- compila
@@ -549,15 +569,18 @@ async function copia(t) {
     let ok = false; try { ok = document.execCommand("copy"); } catch (e2) { /* niente */ } ta.remove(); return ok;
   }
 }
-$("b-invia").addEventListener("click", async () => {
+async function inviaPdf(perEmail) {
   if (!ultimo) return;
   const file = new File([ultimo.blob], ultimo.nome, { type: "application/pdf" });
-  await copia(ultimo.oggetto);
+  if (perEmail) await copia(ultimo.oggetto);
+  const dati = perEmail ? { files: [file], title: ultimo.oggetto, text: ultimo.testo } : { files: [file], title: ultimo.nome };
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: ultimo.oggetto, text: ultimo.testo }); }
-    catch (e) { if (e.name !== "AbortError") toast("Condivisione non riuscita: usa 'Apri / salva PDF'"); }
-  } else { toast("Questo browser non può condividere file: uso 'Apri / salva PDF'"); apriPdf(); }
-});
+    try { await navigator.share(dati); }
+    catch (e) { if (e.name !== "AbortError") toast("Invio non riuscito: usa «Apri / salva PDF»"); }
+  } else { toast("Questo browser non può allegare file: apro il PDF da salvare"); apriPdf(); }
+}
+$("b-invia").addEventListener("click", () => inviaPdf(true));
+$("b-condividi-pdf").addEventListener("click", () => inviaPdf(false));
 function apriPdf() {
   if (!ultimo) return;
   const url = URL.createObjectURL(ultimo.blob), a = document.createElement("a");

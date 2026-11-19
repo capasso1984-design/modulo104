@@ -261,11 +261,15 @@ body.bloccata main{visibility:hidden}
     <h2>PDF pronto ✔ Controllalo</h2>
     <p id="nomepdf" class="muted"></p>
     <div id="anteprima" class="anteprima" title="Tocca per aprire il PDF"></div>
-    <button class="btn" id="b-invia">Invia (Gmail, WhatsApp…)</button>
+    <button class="btn" id="b-invia">✉️ Invia per email</button>
+    <p class="muted">Scegli <b>Mail</b> (o Gmail): PDF allegato, oggetto e testo sono già pronti, scrivi solo il destinatario.</p>
+    <button class="btn sec" id="b-condividi-pdf">↗ Manda in altro modo (WhatsApp…)</button>
     <button class="btn sec" id="b-apri">Apri / salva PDF</button>
-    <button class="btn sec" id="b-oggetto">Copia l'oggetto dell'email</button>
-    <button class="btn sec" id="b-gmail">Apri Gmail con oggetto e testo (senza allegato)</button>
-    <p class="muted">Con "Invia" scegli Gmail: il PDF è già allegato. L'oggetto viene copiato da solo: tieni premuto nel campo Oggetto e scegli "Incolla".</p>
+    <details style="margin-top:.6rem"><summary>Se l'oggetto non compare</summary>
+      <p class="muted">Alcune app (es. Gmail) non ricevono l'oggetto: è già copiato, tieni premuto nel campo Oggetto e scegli «Incolla».</p>
+      <button class="btn sec" id="b-oggetto">Copia di nuovo l'oggetto</button>
+      <button class="btn sec" id="b-gmail">Apri Gmail con oggetto e testo (senza allegato)</button>
+    </details>
   </div>
 </section>
 
@@ -391,15 +395,24 @@ body.bloccata main{visibility:hidden}
 <section id="s-impost">
   <button class="indietro" data-vai="s-home"><svg class="sic"><use href="#i-indietro"/></svg>Menu</button>
   <h1 class="shub__titolo">Email e nome del file</h1>
-  <div class="card">
-    <label for="em-a" style="margin-top:0">Destinatario</label><input id="em-a" type="email" autocomplete="off">
-    <label for="em-cc">Copia (CC)</label><input id="em-cc" type="email" autocomplete="off">
-    <label for="em-ogg">Oggetto</label><input id="em-ogg" type="text">
-    <label for="em-testo">Testo</label><textarea id="em-testo"></textarea>
-    <label for="nomefile">Nome del file PDF</label><input id="nomefile" type="text">
-    <p class="muted">Puoi usare: {grado_nome} {grado} {cognome} {nome} {reparto} {assistito} {mese} {anno} {mese_anno} {periodi} {giorni_numero} {data_compilazione}</p>
-    <button class="btn" id="b-salva-imp">Salva</button>
+  <p class="shub__sub">Oggetto, testo e nome del file si compilano da soli con i tuoi dati e il mese. Quando invii, scrivi solo il destinatario.</p>
+  <div class="card" id="em-vista">
+    <div class="motivo-vista" style="display:block;position:relative;padding-right:3.4rem">
+      <button class="shub__azione" id="b-mod-email" aria-label="Personalizza" title="Personalizza" style="position:absolute;right:.6rem;top:.6rem"><svg class="sic"><use href="#i-penna"/></svg></button>
+      <p class="muted" style="margin:0">Oggetto (esempio)</p><p id="pv-ogg" style="margin:.1rem 0 .7rem;font-weight:700"></p>
+      <p class="muted" style="margin:0">Testo</p><p id="pv-testo" style="margin:.1rem 0 .7rem;white-space:pre-line"></p>
+      <p class="muted" style="margin:0">Nome del file</p><p id="pv-file" style="margin:.1rem 0 0"></p>
+    </div>
   </div>
+  <div class="card" id="em-modifica" style="display:none">
+    <label for="em-ogg" style="margin-top:0">Oggetto</label><input id="em-ogg" type="text">
+    <label for="em-testo">Testo</label><textarea id="em-testo" rows="7"></textarea>
+    <label for="nomefile">Nome del file PDF</label><input id="nomefile" type="text">
+    <p class="muted">Le parti tra graffe si riempiono da sole: {grado_nome} {grado} {cognome} {nome} {reparto} {assistito} {mese} {anno} {mese_anno} {periodi} {giorni_numero} {data_compilazione}</p>
+    <div class="row"><button class="btn sec" id="b-annulla-imp">Annulla</button><button class="btn" id="b-salva-imp">Salva</button></div>
+    <button class="btn sec" id="b-ripristina-imp">Ripristina i testi predefiniti</button>
+  </div>
+  <input id="em-a" type="hidden"><input id="em-cc" type="hidden">
 </section>
 
 <!-- AIUTO INSTALLAZIONE -->
@@ -440,7 +453,7 @@ body.bloccata main{visibility:hidden}
 <script src="pdf-lib.min.js"></script>
 <script src="word.js?v=2.4"></script>
 <script src="firma.js?v=2.7"></script>
-<script src="app.js?v=3.0"></script>
+<script src="app.js?v=3.1"></script>
 <script src="prepara.js?v=3.0"></script>
 <script src="accesso.js?v=3.0"></script>
 </body>
