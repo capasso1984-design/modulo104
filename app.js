@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "2.6";
+const VERSIONE = "2.7";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -136,15 +136,12 @@ function pulisciFirma(img, daFoto) {
   o.getContext("2d").drawImage(c, x0, y0, cw, ch, 0, 0, o.width, o.height);
   return o.toDataURL("image/png");
 }
-$("file-firma").addEventListener("change", async (e) => {
-  const f = e.target.files[0]; if (!f) return;
-  try {
-    const url = URL.createObjectURL(f); const img = await caricaImg(url); URL.revokeObjectURL(url);
-    const out = pulisciFirma(img, true);
-    if (!out) { toast("Non trovo la firma nella foto: riprova con più luce e fondo bianco"); return; }
-    if (mem.set("m104_firma", out)) { mostraFirma(); aggiornaAvvisi(); toast("Firma salvata ✔"); }
-  } catch (err) { toast("Impossibile leggere l'immagine"); }
-  e.target.value = "";
+// la foto passa dall'editor: ritaglio, pulizia, controllo; si salva solo se l'utente accetta
+$("file-firma").addEventListener("change", (e) => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  window.M104firma.apri(f, (dataUrl) => {
+    if (mem.set("m104_firma", dataUrl)) { mostraFirma(); aggiornaAvvisi(); vai("s-anag"); toast("Firma salvata ✔"); }
+  });
 });
 $("b-ruota").addEventListener("click", async () => {
   const f = mem.get("m104_firma", null); if (!f) return;

@@ -107,6 +107,10 @@ details summary{cursor:pointer;font-weight:800;padding:.2rem 0;color:var(--pri)}
 .stato-mod.attesa{background:rgba(var(--warn-rgb),.2)}
 .stato-mod.spento{background:rgba(var(--pri-rgb),.06);color:var(--muted)}
 .formati{display:flex;flex-direction:column;gap:.3rem;background:rgba(var(--pri-rgb),.06);border-radius:12px;padding:.7rem .85rem;font-size:.88rem;margin:.3rem 0}
+.fe-foto{display:block;width:100%;height:auto;border-radius:10px;touch-action:none;margin-top:.4rem;background:#000}
+.fe-risultato{display:block;max-width:100%;height:auto;margin:.4rem auto 0;border:1px solid var(--line);border-radius:10px;background:#fff}
+input[type=range]{padding:0;border:0;background:none;accent-color:var(--pri)}
+.row .btn{margin-top:.5rem;padding:.7rem .4rem;font-size:.9rem}
 #toast{position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));background:#1b2a41;color:#fff;padding:12px 14px;border-radius:12px;display:none;z-index:9;box-shadow:0 8px 20px rgba(0,0,0,.25)}
 </style>
 </head>
@@ -259,6 +263,27 @@ details summary{cursor:pointer;font-weight:800;padding:.2rem 0;color:var(--pri)}
   <button class="btn" id="b-salva-anag">Salva anagrafica</button>
 </section>
 
+<!-- EDITOR FIRMA -->
+<section id="s-firma">
+  <button class="indietro" data-vai="s-anag"><svg class="sic"><use href="#i-indietro"/></svg>Anagrafica</button>
+  <h1 class="shub__titolo">Sistema la firma</h1>
+  <p class="shub__sub" id="fe-stato"></p>
+  <div class="card">
+    <h2>1 · Ritaglia</h2>
+    <p class="muted">Trascina il dito sulla foto per scegliere solo la zona con la firma.</p>
+    <canvas id="fe-foto" class="fe-foto"></canvas>
+    <div class="row"><button class="btn sec" id="fe-auto">Trova da sola</button><button class="btn sec" id="fe-tutta">Tutta la foto</button><button class="btn sec" id="fe-ruota">Ruota ↻</button></div>
+  </div>
+  <div class="card">
+    <h2>2 · Controlla il risultato</h2>
+    <canvas id="fe-risultato" class="fe-risultato"></canvas>
+    <label for="fe-sens">Pulizia: sposta a sinistra se restano ombre o puntini, a destra se la firma è troppo sottile</label>
+    <input id="fe-sens" type="range" min="0" max="100" value="40">
+  </div>
+  <button class="btn" id="fe-ok" disabled>✔ Usa questa firma</button>
+  <button class="btn sec" id="fe-annulla">Annulla</button>
+</section>
+
 <!-- MODULO -->
 <section id="s-modulo">
   <button class="indietro" data-vai="s-home"><svg class="sic"><use href="#i-indietro"/></svg>Menu</button>
@@ -346,7 +371,8 @@ details summary{cursor:pointer;font-weight:800;padding:.2rem 0;color:var(--pri)}
 <div id="toast"></div>
 <script src="pdf-lib.min.js"></script>
 <script src="word.js?v=2.4"></script>
-<script src="app.js?v=2.6"></script>
-<script src="prepara.js?v=2.6"></script>
+<script src="firma.js?v=2.7"></script>
+<script src="app.js?v=2.7"></script>
+<script src="prepara.js?v=2.7"></script>
 </body>
 </html>
