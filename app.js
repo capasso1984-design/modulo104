@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.16";
+const VERSIONE = "3.17";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -897,21 +897,22 @@ function disegnaArchivio() {
   $("arc-anni").querySelectorAll("[data-anno]").forEach((b) => b.addEventListener("click", () => { arcAnno = +b.dataset.anno; disegnaArchivio(); }));
   let tot = 0, comp = 0, t151 = 0;
   const gg = (i, ds) => ds.map((d) => `${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${pad2(d)}`).join(" · ");
-  const riga = (cls, ico, titolo, testo, n) => `<div class="arc-riga ${cls}"><span class="arc-ico">${ico}</span><span class="arc-riga__c"><b class="arc-riga__t">${titolo}</b><span class="arc-riga__g">${testo}</span></span>${n ? `<span class="arc-n">${n}</span>` : ""}</div>`;
+  const riga = (cls, ico, titolo, testo, n, doc, mese) => `<div class="arc-riga ${cls}"><span class="arc-ico">${ico}</span><span class="arc-riga__c"><b class="arc-riga__t">${titolo}</b><span class="arc-riga__g">${testo}</span></span>
+    <span class="arc-destra">${n ? `<span class="arc-n">${n}</span>` : ""}${doc ? `<span class="arc-mini"><button class="arc-mini__b" data-doc="${doc}" data-m="${mese}" data-az="stampa" aria-label="Stampa ${titolo}" title="Stampa"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></svg></button><button class="arc-mini__b" data-doc="${doc}" data-m="${mese}" data-az="condividi" aria-label="Condividi ${titolo}" title="Condividi"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></button></span>` : ""}</span></div>`;
   const vuoti = [], carte = [];
   MESI.forEach((nome, i) => {
     const r = dati[`${arcAnno}-${pad2(i + 1)}`], tu = turniArchivio(r, arcAnno, i + 1);
     if (!r && !tu.length) { vuoti.push(i); return; }
     let righe = "";
     if (r) comp++;
-    if (r && r.nessuno) righe += riga("a-no", "—", "104: nessun permesso", `Motivo: «${esc(r.motivo)}»`, "");
+    if (r && r.nessuno) righe += riga("a-no", "—", "104: nessun permesso", `Motivo: «${esc(r.motivo)}»`, "", "104", i + 1);
     else if (r && !r.solo151 && (r.giorni.length || r.orari.length)) {
       tot += r.giorni.length;
       const or = r.orari.map(([g, x, y]) => `${pad2(g)} ${esc(x)}-${esc(y)}`).join(" · ");
-      righe += riga("a104", "104", "Permessi 104", [gg(i, r.giorni), or].filter(Boolean).join(" · ") , `${r.giorni.length}/3`);
+      righe += riga("a104", "104", "Permessi 104", [gg(i, r.giorni), or].filter(Boolean).join(" · ") , `${r.giorni.length}/3`, "104", i + 1);
     }
-    if (r && r.g151 && r.g151.length) { t151 += r.g151.length; righe += riga("a151", "151", "Congedo 151", gg(i, r.g151), `${r.g151.length} gg`); }
-    if (tu.length) righe += riga("atu", "T", "Turni di servizio", tu.map((d) => `${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${d}`).join(" · "), String(tu.length));
+    if (r && r.g151 && r.g151.length) { t151 += r.g151.length; righe += riga("a151", "151", "Congedo 151", gg(i, r.g151), `${r.g151.length} gg`, "151", i + 1); }
+    if (tu.length) righe += riga("atu", "T", "Turni di servizio", tu.map((d) => `${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${d}`).join(" · "), String(tu.length), "turni", i + 1);
     if (!r) righe += `<small class="muted">Modulo non ancora creato.</small>`;
     carte.push(`<div class="arc-card"><div class="arc-card__testa"><b class="arc-card__mese">${nome}</b>${r ? `<span class="arc-card__data">creato il ${esc(r.creato)}</span><button class="arc-x" data-cancella="${arcAnno}-${pad2(i + 1)}" aria-label="Cancella ${nome} dall'archivio" title="Cancella">✕</button>` : ""}</div>
       ${righe}<div class="arc-azioni3">
@@ -927,6 +928,7 @@ function disegnaArchivio() {
     if (!confirm("Cancellare questo mese dall'archivio? Il PDF già inviato non cambia.")) return;
     const ar = archivio(); delete (ar[pid] || {})[b.dataset.cancella]; mem.set("m104_archivio", ar); disegnaArchivio();
   }));
+  $("arc-mesi").querySelectorAll("[data-doc]").forEach((b) => b.addEventListener("click", () => docMese(pid, arcAnno, +b.dataset.m, b.dataset.doc, b.dataset.az, b)));
   $("arc-mesi").querySelectorAll("[data-vedi]").forEach((b) => b.addEventListener("click", () => apriVedi(pid, arcAnno, +b.dataset.vedi)));
   $("arc-mesi").querySelectorAll("[data-condividi]").forEach((b) => b.addEventListener("click", async () => { await preparaVedi(pid, arcAnno, +b.dataset.condividi); condividiVedi(); }));
   $("arc-tot").textContent = String(tot); $("arc-mesi-n").textContent = `${comp} / 12`;
@@ -942,6 +944,40 @@ function disegnaArchivio() {
   }
 }
 $("arc-persona").addEventListener("change", disegnaArchivio);
+// ---- ristampa / condividi il singolo modulo di un mese (104, 151 o solo i turni)
+async function docMese(pid, anno, mese, tipo, az, btn) {
+  const r = (archivio()[pid] || {})[`${anno}-${pad2(mese)}`] || null;
+  if (btn) btn.disabled = true;
+  try {
+    let out;
+    if (tipo === "turni") {
+      const p = persone().find((x) => x.id === pid) || { nome: "" };
+      const cv = M104vedi.disegna({ anno, mese, chi: "", richiedente: fissi(p).grado_nome + " · turni di servizio", giorni: [], g151: [], turni: turniArchivio(r, anno, mese) });
+      out = { blob: await M104vedi.blob(cv), nome: `Turni ${MESI[mese - 1]} ${anno}.png`, tipo: "image/png", titolo: `Turni ${MESI[mese - 1]} ${anno}` };
+    } else if (tipo === "151") {
+      if (!ha151()) { toast("Carica prima il Word della 151 in «Modulo da compilare»", 5000); return; }
+      const x = await M151.crea({ mese, anno, g151: r.g151, data: r.creato });
+      out = { blob: x.blob, nome: x.nome, tipo: "application/pdf", titolo: `Congedo 151 ${MESI[mese - 1]} ${anno}` };
+    } else {
+      if (!pacchetto) { toast("Prima carica il modulo da compilare"); return; }
+      const m = { mese, anno, daDate: !r.nessuno, periodi: r.nessuno ? [] : periodiDa(r.giorni), orari: r.orari || [], data: r.creato, motivo: r.nessuno ? r.motivo : "", giorni: r.giorni, g151: [] };
+      const prima = mem.get("m104_persona", null); mem.set("m104_persona", pid);   // il modulo è per la persona di questo archivio
+      try { const x = await creaPdf(m); out = { blob: x.blob, nome: x.nome, tipo: "application/pdf", titolo: x.oggetto, testo: x.testo }; }
+      finally { mem.set("m104_persona", prima); }
+    }
+    const file = new File([out.blob], out.nome, { type: out.tipo });
+    if (az === "condividi" && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: out.titolo }); } catch (e) { if (e.name !== "AbortError") toast("Condivisione non riuscita"); }
+      return;
+    }
+    // stampa: si apre il file, da lì «Stampa» (o Condividi → Stampa su iPhone)
+    const url = URL.createObjectURL(out.blob), a = document.createElement("a");
+    a.href = url; a.target = "_blank"; if (az !== "stampa") a.download = out.nome; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 120000);
+    if (az === "stampa") toast("Si apre il file: da lì scegli Stampa");
+  } catch (e) { console.error(e); toast("Errore: " + e.message, 5000); }
+  finally { if (btn) btn.disabled = false; }
+}
 // ---- visualizza / condividi un mese
 let vediCorrente = null;   // { pid, anno, mese, blob, nome, titolo }
 async function preparaVedi(pid, anno, mese) {
