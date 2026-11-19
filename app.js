@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "2.9";
+const VERSIONE = "3.0";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -618,14 +618,14 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.addEventListener("controllerchange", () => { if (!ricaricata) { ricaricata = true; location.reload(); } });
   navigator.serviceWorker.getRegistration().then((r) => r && r.update()).catch(() => {});
 }
-window.M104 = { creaPdf, calcolaValori, leggiMese, salvaPacchetto, toast, vai, anteprima, tipoFile, confermaSostituzione, apriWord, vediModulo, attuale: () => pacchetto };
+window.M104 = { creaPdf, calcolaValori, leggiMese, salvaPacchetto, toast, vai, anteprima, tipoFile, confermaSostituzione, apriWord, vediModulo, condividiApp, attuale: () => pacchetto };
 
 // ---------------------------------------------------------------- condivisione e installazione
 const LINK_APP = location.origin + location.pathname.replace(/index\.html$/, "");
 const TESTO_INVITO = "Ti mando l'app Modulo 104: compila e invia il modulo mensile dei permessi L.104/92 dal telefono. " +
   "Apri il link e segui le istruzioni per aggiungerla alla schermata Home:";
-async function condividiApp(conModulo) {
-  const testo = `${TESTO_INVITO}\n${LINK_APP}`;
+async function condividiApp(conModulo, link = LINK_APP, nota = "") {
+  const testo = `${TESTO_INVITO}\n${link}${nota ? "\n\n" + nota : ""}`;
   if (conModulo) {
     if (!pacchetto) { toast("Prima carica il modulo da compilare"); vai("s-modulo"); return; }
     const nomeFile = `Modulo104 - ${String(pacchetto.nome || "modulo").replace(/[<>:"/\|?*]/g, "-")}.m104`;
@@ -643,14 +643,15 @@ async function condividiApp(conModulo) {
     toast("File del modulo salvato: allegalo tu al messaggio");
   }
   if (navigator.share) {
-    try { await navigator.share({ title: "Modulo 104", text: TESTO_INVITO, url: LINK_APP }); return; }
+    try { await navigator.share({ title: "Modulo 104", text: TESTO_INVITO + (nota ? "\n" + nota : ""), url: link }); return; }
     catch (e) { if (e.name === "AbortError") return; }
   }
   if (await copia(testo)) toast("Link copiato ✔ Incollalo in WhatsApp, email o SMS");
 }
-$("b-condividi").addEventListener("click", () => condividiApp(false));
-$("b-condividi-modulo").addEventListener("click", () => condividiApp(true));
-$("b-condividi-testa").addEventListener("click", () => condividiApp(false));
+// la condivisione passa dall'invito personale (solo amministratore)
+$("b-condividi").addEventListener("click", () => window.M104acc.apriInvito(false));
+$("b-condividi-modulo").addEventListener("click", () => window.M104acc.apriInvito(true));
+$("b-condividi-testa").addEventListener("click", () => window.M104acc.apriInvito(false));
 
 const installata = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 const ua = navigator.userAgent;
