@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "2.2";
+const VERSIONE = "2.6";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -41,7 +41,8 @@ async function idbSet(k, v) {
   return new Promise((ok, ko) => { const t = db.transaction("dati", "readwrite"); t.objectStore("dati").put(v, k); t.oncomplete = () => ok(); t.onerror = () => ko(t.error); });
 }
 
-let pacchetto = null;
+let pacchetto = null;            // modulo in uso
+let moduli = { master: null, tuo: null, uso: null };
 let ultimo = null; // {blob, nome, oggetto, testo}
 
 function toast(msg, ms = 3500) {
@@ -179,19 +180,32 @@ $("b-firma-del").addEventListener("click", () => { if (confirm("Eliminare la fir
 
 // ---------------------------------------------------------------- modulo .m104
 async function caricaPacchetto() {
-  try { pacchetto = await idbGet("pacchetto"); } catch (e) { pacchetto = null; }
+  try {
+    moduli.master = await idbGet("master"); moduli.tuo = await idbGet("tuo"); moduli.uso = await idbGet("uso");
+    const vecchio = await idbGet("pacchetto");          // versioni precedenti: un solo modulo
+    if (vecchio && !moduli.master && !moduli.tuo) {
+      const k = vecchio.origine === "telefono" ? "tuo" : "master";
+      moduli[k] = vecchio; moduli.uso = k; await idbSet(k, vecchio); await idbSet("uso", k);
+    }
+  } catch (e) { /* niente */ }
+  if (!moduli[moduli.uso]) moduli.uso = moduli.master ? "master" : moduli.tuo ? "tuo" : null;
+  pacchetto = moduli.uso ? moduli[moduli.uso] : null;
   infoModulo();
 }
 function infoModulo() {
-  const daPc = pacchetto && pacchetto.origine !== "telefono";
-  $("info-modulo").textContent = pacchetto ? `In uso: «${pacchetto.nome}»` : "Nessun modulo caricato: scegli una delle due strade qui sotto.";
+  const M = moduli.master, T = moduli.tuo;
+  $("info-modulo").textContent = pacchetto ? `In uso: «${pacchetto.nome}» (${moduli.uso === "master" ? "modulo master" : "caricato da te"})` : "Nessun modulo caricato: scegli una delle due strade qui sotto.";
   const sp = $("stato-pc"), st = $("stato-tel");
-  if (daPc) { sp.className = "stato-mod ok"; sp.innerHTML = `✔ <b>In uso la copia del PC</b><br>«${esc(pacchetto.nome)}» · preparata il ${esc(pacchetto.creato)}${pacchetto.caricato ? " · caricata il " + esc(pacchetto.caricato) : ""}`; }
-  else { sp.className = "stato-mod attesa"; sp.innerHTML = "⏳ <b>Nessuna copia del PC</b><br>In attesa del file .m104 preparato dal PC"; }
-  if (pacchetto && !daPc) { st.className = "stato-mod ok"; st.innerHTML = `✔ <b>In uso il modulo preparato sul telefono</b><br>«${esc(pacchetto.nome)}» · ${esc(pacchetto.creato)}`; }
-  else { st.className = "stato-mod spento"; st.textContent = daPc ? "Non serve: stai usando la copia del PC" : "Nessun modulo preparato sul telefono"; }
-  $("box-anteprima-mod").style.display = pacchetto ? "block" : "none";
-  $("anteprima-mod").style.display = "none";
+  if (M) { sp.className = "stato-mod " + (moduli.uso === "master" ? "ok" : "spento"); sp.innerHTML = `${moduli.uso === "master" ? "✔ <b>Modulo master caricato nel sistema</b> · è quello in uso" : "<b>Modulo master caricato nel sistema</b> · non in uso"}<br>«${esc(M.nome)}» · preparato il ${esc(M.creato)}${M.caricato ? " · caricato il " + esc(M.caricato) : ""}`; }
+  else { sp.className = "stato-mod attesa"; sp.innerHTML = "⏳ <b>Nessun modulo master</b><br>In attesa del file .m104 preparato dal PC"; }
+  if (T) { st.className = "stato-mod " + (moduli.uso === "tuo" ? "ok" : "spento"); st.innerHTML = `${moduli.uso === "tuo" ? "✔ <b>Modulo caricato da te</b> · è quello in uso" : "<b>Modulo caricato da te</b> · non in uso"}<br>«${esc(T.nome)}» · ${esc(T.creato)}`; }
+  else { st.className = "stato-mod spento"; st.textContent = "Nessun modulo caricato da te"; }
+  $("b-vedi-pc").style.display = M ? "flex" : "none";
+  $("b-vedi-tel").style.display = T ? "flex" : "none";
+  $("b-usa-pc").style.display = M && moduli.uso !== "master" ? "flex" : "none";
+  $("b-usa-tel").style.display = T && moduli.uso !== "tuo" ? "flex" : "none";
+  $("anteprima-pc").style.display = "none"; $("anteprima-tel").style.display = "none";
+  $("versione-mod").textContent = "Versione app " + VERSIONE;
   $("sottotitolo").textContent = pacchetto ? pacchetto.nome : "Programmazione permessi L.104/92";
 }
 // riconosce il tipo di file dai primi byte, non dal nome (WhatsApp e iCloud a volte cambiano l'estensione)
@@ -230,8 +244,9 @@ async function apriWord(f, daPrepara) {
 }
 // chiede conferma prima di sostituire il modulo già in uso
 function confermaSostituzione(nuovo) {
-  if (!pacchetto) return true;
-  return confirm(`Stai sostituendo il modulo in uso:\n«${pacchetto.nome}» (del ${pacchetto.creato})\n\ncon:\n«${nuovo.nome}» (del ${nuovo.creato})\n\nContinuo?`);
+  // il modulo caricato da te sostituisce solo il tuo precedente: il master resta conservato
+  if (!moduli.tuo) return true;
+  return confirm(`Sostituisco il modulo caricato da te\n«${moduli.tuo.nome}» (del ${moduli.tuo.creato})\ncon «${nuovo.nome}»?\n\nIl modulo master resta conservato.`);
 }
 // riquadro 2: PDF o Word
 $("file-pdfword").addEventListener("change", async (e) => {
@@ -242,17 +257,24 @@ $("file-pdfword").addEventListener("change", async (e) => {
   toast(tipo === "m104" ? "Questo è il file del PC: usa il riquadro 1" : "Scegli un PDF o un Word (.docx)", 5000);
 });
 // anteprima del modulo in uso, con i dati dell'anagrafica e date di esempio
-$("b-anteprima-mod").addEventListener("click", async () => {
+async function vediModulo(quale) {
   if (!pacchetto) return;
-  const b = $("b-anteprima-mod"); b.disabled = true; b.textContent = "Preparo l'anteprima…";
+  const b = $("b-vedi-" + quale), box = $("anteprima-" + quale), testo = b.textContent;
+  if (box.style.display === "block") { box.style.display = "none"; return; }
+  b.disabled = true; b.textContent = "Preparo l'anteprima…";
   try {
     const oggi = new Date(), m = { mese: oggi.getMonth() + 1, anno: oggi.getFullYear(), daDate: true, periodi: [[3, 4]], orari: [], data: fmt(oggi), motivo: "" };
-    const r = await creaPdf(m);
-    $("anteprima-mod").style.display = "block";
-    await anteprimaIn($("anteprima-mod"), r.blob);
+    const r = await creaPdf(m, quale === "pc" ? moduli.master : moduli.tuo);
+    box.style.display = "block";
+    await anteprimaIn(box, r.blob);
+    box.insertAdjacentHTML("afterbegin", '<p class="muted" style="margin:.4rem .6rem">Esempio con i tuoi dati e i giorni 3-4 del mese</p>');
   } catch (err) { console.error(err); toast("Anteprima non disponibile"); }
-  b.disabled = false; b.textContent = "👁 Vedi anteprima del modulo";
-});
+  b.disabled = false; b.textContent = testo;
+}
+$("b-vedi-pc").addEventListener("click", () => vediModulo("pc"));
+$("b-usa-pc").addEventListener("click", () => usaModulo("master"));
+$("b-usa-tel").addEventListener("click", () => usaModulo("tuo"));
+$("b-vedi-tel").addEventListener("click", () => vediModulo("tel"));
 $("file-m104").addEventListener("change", async (e) => {
   const f = e.target.files[0]; e.target.value = ""; if (!f) return;
   $("avviso-word").style.display = "none";
@@ -265,10 +287,12 @@ $("file-m104").addEventListener("change", async (e) => {
   try {
     const j = JSON.parse(await f.text());
     if (j.formato !== "m104" || !j.basi || !j.campi) throw new Error("formato");
-    if (!confermaSostituzione(j)) return;
-    j.origine = j.origine || "pc"; j.caricato = new Date().toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" });
-    await idbSet("pacchetto", j); pacchetto = j; infoModulo(); toast("Modulo caricato ✔");
-    aggiornaAvvisi(); vai("s-home");
+    if (moduli.master && !confirm(`Sostituisco il modulo master attuale\n«${moduli.master.nome}» (del ${moduli.master.creato})\ncon «${j.nome}» (del ${j.creato})?`)) return;
+    j.caricato = new Date().toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" });
+    const usa = !moduli.tuo || moduli.uso === "master" || confirm(`Ora stai usando il modulo caricato da te («${moduli.tuo.nome}»).\nVuoi usare da subito il nuovo modulo master?`);
+    await salvaModulo("master", j, usa);
+    toast(usa ? "Modulo master caricato ✔ È quello in uso" : "Modulo master caricato ✔ (resta in uso il tuo)");
+    vai("s-modulo"); vediModulo("pc");
   } catch (err) { toast("Questo file non è un modulo: scegli il file .m104, oppure un PDF del modulo vuoto"); }
 });
 function esc(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
@@ -392,7 +416,7 @@ function pulisciTesto(s, font) {
 }
 function b64bytes(b64) { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }
 
-async function creaPdf(m) {
+async function creaPdf(m, pacchetto = window.M104 && window.M104.attuale()) {
   const { PDFDocument, StandardFonts, rgb } = PDFLib;
   const v = calcolaValori(m), f = fissi();
   const scen = v._giorni && v._orari ? "entrambi" : v._giorni ? "giorni" : v._orari ? "orari" : "nessuno";
@@ -532,8 +556,21 @@ $("b-gmail").addEventListener("click", () => {
 costruisciAnag(); costruisciImpost(); costruisciCompila();
 caricaPacchetto().then(() => mostra(location.hash ? "s-" + location.hash.slice(1) : "s-home"));
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
-async function salvaPacchetto(j) { await idbSet("pacchetto", j); pacchetto = j; infoModulo(); aggiornaAvvisi(); }
-window.M104 = { creaPdf, calcolaValori, leggiMese, salvaPacchetto, toast, vai, anteprima, tipoFile, confermaSostituzione, apriWord, attuale: () => pacchetto };
+// salva un modulo nel suo posto (master o tuo) senza toccare l'altro
+async function salvaModulo(k, j, usa) {
+  moduli[k] = j; await idbSet(k, j);
+  if (usa || !moduli.uso) { moduli.uso = k; await idbSet("uso", k); }
+  pacchetto = moduli[moduli.uso]; infoModulo(); aggiornaAvvisi();
+}
+async function salvaPacchetto(j) { await salvaModulo(j.origine === "telefono" ? "tuo" : "master", j, true); }
+async function usaModulo(k) { if (!moduli[k]) return; moduli.uso = k; await idbSet("uso", k); pacchetto = moduli[k]; infoModulo(); aggiornaAvvisi(); toast(k === "master" ? "Ora usi il modulo master" : "Ora usi il modulo caricato da te"); }
+// l'app si aggiorna da sola quando pubblico una nuova versione
+if ("serviceWorker" in navigator) {
+  let ricaricata = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (!ricaricata) { ricaricata = true; location.reload(); } });
+  navigator.serviceWorker.getRegistration().then((r) => r && r.update()).catch(() => {});
+}
+window.M104 = { creaPdf, calcolaValori, leggiMese, salvaPacchetto, toast, vai, anteprima, tipoFile, confermaSostituzione, apriWord, vediModulo, attuale: () => pacchetto };
 
 // ---------------------------------------------------------------- condivisione e installazione
 const LINK_APP = location.origin + location.pathname.replace(/index\.html$/, "");

@@ -332,10 +332,11 @@
       basi: { unico: b64(stato.bytes) },
     };
     await window.M104.salvaPacchetto(pacchetto);
-    window.M104.toast("Modulo pronto ✔ Ora puoi compilare il mese");
+    window.M104.toast("Modulo caricato ✔ Ecco l'anteprima");
     stato = null; $("prep-elenco").innerHTML = ""; $("prep-pagine").innerHTML = ""; $("prep-salva").disabled = true;
     $("prep-stato").textContent = "";
-    window.M104.vai("s-home");
+    window.M104.vai("s-modulo");
+    window.M104.vediModulo && window.M104.vediModulo("tel");
   }
 
   $("prep-file").addEventListener("change", async (e) => {

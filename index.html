@@ -265,28 +265,29 @@ details summary{cursor:pointer;font-weight:800;padding:.2rem 0;color:var(--pri)}
   <h1 class="shub__titolo">Modulo da compilare</h1>
   <p class="shub__sub" id="info-modulo">Nessun modulo caricato.</p>
 
-  <h2 class="shub__sezione">1 · Copia preparata dal PC</h2>
+  <h2 class="shub__sezione">1 · Modulo master (preparato dal PC)</h2>
   <div class="card">
     <div class="stato-mod" id="stato-pc"></div>
-    <p class="muted">È la strada consigliata: il modulo resta identico all'originale. Il file <b>.m104</b> lo prepara il PC (app "Modulo 104" → "Prepara per il telefono") oppure te lo manda un collega.</p>
-    <label for="file-m104" class="btn" style="text-transform:none;letter-spacing:0;color:#fff">📥 Carica la copia del PC (.m104)</label>
+    <button class="btn" id="b-vedi-pc" style="display:none">👁 Vedi il modulo master</button>
+    <button class="btn sec" id="b-usa-pc" style="display:none">Usa il modulo master</button>
+    <div id="anteprima-pc" class="anteprima" style="display:none"></div>
+    <p class="muted">È il modulo ufficiale, identico all'originale: il file <b>.m104</b> lo prepara il PC (app "Modulo 104" → "Prepara per il telefono") oppure te lo manda chi gestisce il modulo.</p>
+    <label for="file-m104" class="btn sec" style="text-transform:none;letter-spacing:0">📥 Carica il modulo master (.m104)</label>
     <input id="file-m104" type="file" style="display:none">
     <div class="avviso" id="avviso-word" style="display:none"></div>
   </div>
 
-  <h2 class="shub__sezione">2 · Oppure preparalo qui</h2>
+  <h2 class="shub__sezione">2 · Oppure caricalo tu (PDF o Word)</h2>
   <div class="card">
     <div class="stato-mod" id="stato-tel"></div>
-    <p class="muted"><b>PDF</b> del modulo vuoto: resta identico all'originale. <b>Word (.docx)</b>: l'app lo impagina da sola in una pagina A4 (il testo è lo stesso, l'aspetto può differire un po').</p>
+    <button class="btn" id="b-vedi-tel" style="display:none">👁 Vedi il modulo caricato</button>
+    <button class="btn sec" id="b-usa-tel" style="display:none">Usa il modulo caricato da te</button>
+    <div id="anteprima-tel" class="anteprima" style="display:none"></div>
+    <p class="muted"><b>PDF</b> del modulo vuoto: resta identico all'originale. <b>Word (.docx)</b>: l'app lo impagina da sola in una pagina A4 (stesso testo, aspetto un po' diverso).</p>
     <label for="file-pdfword" class="btn sec" style="text-transform:none;letter-spacing:0">📄 Carica PDF o Word</label>
     <input id="file-pdfword" type="file" style="display:none">
   </div>
-
-  <div class="card" id="box-anteprima-mod" style="display:none">
-    <button class="btn" id="b-anteprima-mod">👁 Vedi anteprima del modulo</button>
-    <p class="muted">L'anteprima usa i tuoi dati e date di esempio, per vedere come verrà il modulo.</p>
-    <div id="anteprima-mod" class="anteprima" style="display:none"></div>
-  </div>
+  <p class="muted" style="text-align:center" id="versione-mod"></p>
 </section>
 
 <!-- PREPARA DA PDF (senza PC) -->
@@ -345,7 +346,7 @@ details summary{cursor:pointer;font-weight:800;padding:.2rem 0;color:var(--pri)}
 <div id="toast"></div>
 <script src="pdf-lib.min.js"></script>
 <script src="word.js?v=2.4"></script>
-<script src="app.js?v=2.2"></script>
-<script src="prepara.js?v=2.4"></script>
+<script src="app.js?v=2.6"></script>
+<script src="prepara.js?v=2.6"></script>
 </body>
 </html>
