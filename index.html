@@ -125,6 +125,45 @@ input[type=range]{padding:0;border:0;background:none;accent-color:var(--pri)}
 .blocco__box img{border-radius:16px}
 .blocco__box textarea,.blocco__box input{text-align:left}
 body.bloccata main{visibility:hidden}
+.mese-nav{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.6rem}
+.mese-nav b{font-size:1.15rem}
+.cal-testa{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.contatore{border-radius:99px;padding:.3rem .8rem;font-weight:800;font-size:.9rem;background:rgba(var(--pri-rgb),.12);color:var(--pri);white-space:nowrap}
+.contatore.ok{background:#dff3e4;color:#1e6b33}.contatore.oltre{background:#fde8e7;color:#9b1c14}
+.cal-sett,.cal-griglia{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
+.cal-sett{font-size:.7rem;font-weight:800;color:var(--muted);margin-top:.4rem}.cal-sett .we{color:#b42318}
+.cal-g{font:inherit;font-size:.95rem;font-weight:700;height:42px;border-radius:10px;border:1px solid rgba(var(--pri-rgb),.15);background:rgba(var(--pri-rgb),.04);color:var(--txt);cursor:pointer;padding:0}
+.cal-g.vuoto{border:0;background:none;cursor:default}
+.cal-g.we{background:#f9e3e2;color:#9b1c14;border-color:transparent}.cal-g.we.bloc{opacity:.6}
+.cal-g.fe{background:#fff0c2;color:#6b4e00;border-color:#d9a400}
+.cal-g.sel{background:var(--pri);color:#fff;border-color:var(--pri)}.cal-g.sel.we,.cal-g.sel.fe{background:#c2410c;border-color:#c2410c;color:#fff}
+.cal-g.oggi{box-shadow:inset 0 0 0 2px var(--pri)}
+.msg-err{background:#fde8e7;color:#9b1c14;border-radius:10px;padding:.6rem .75rem;font-size:.88rem;font-weight:700;margin-top:.4rem}
+.msg-avv{background:#fff4d6;color:#6b4e00;border-radius:10px;padding:.6rem .75rem;font-size:.88rem;font-weight:700;margin-top:.4rem}
+.cal-nel{font-size:.88rem;margin-top:.4rem}
+.legenda{display:flex;flex-wrap:wrap;gap:.8rem;font-size:.75rem;color:var(--muted);margin-top:.4rem}.legenda span{display:inline-flex;align-items:center;gap:.3rem}
+.lg{display:inline-block;width:12px;height:12px;border-radius:4px}.lg-sel{background:var(--pri)}.lg-we{background:#f9e3e2}.lg-fe{background:#fff0c2;border:1px solid #d9a400}
+.interr{display:flex;align-items:center;gap:.7rem;text-transform:none;letter-spacing:0;font-size:1rem;color:var(--txt);margin:0}
+.interr input{width:24px;height:24px;flex:none;accent-color:var(--pri)}.interr small{display:block;color:var(--muted);font-size:.8rem;font-weight:400}
+.persona{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) auto;gap:6px;align-items:end;margin-top:.4rem}
+.persona label{margin-top:.2rem}
+.pillole{display:flex;gap:6px;flex-wrap:wrap;margin-top:.7rem}
+.pill{font:inherit;font-weight:800;border-radius:99px;padding:.5rem 1rem;border:1.5px solid rgba(var(--pri-rgb),.28);background:var(--card);color:var(--pri);cursor:pointer}
+.pill.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.riep2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}.riep2 .num{font-size:1.6rem;color:var(--pri)}
+.arc-mese{padding:.8rem 1rem;display:flex;flex-direction:column;gap:.4rem}
+.shub__elenco .arc-mese+.arc-mese{border-top:1px solid var(--line)}
+.arc-testa{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.badge{border-radius:99px;padding:.2rem .65rem;font-size:.75rem;font-weight:800;white-space:nowrap;background:rgba(var(--pri-rgb),.1);color:var(--pri)}
+.badge.ok{background:#dff3e4;color:#1e6b33}.badge.no{background:#fff4d6;color:#7a5a00}.badge.vuoto{background:var(--bg);color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{background:rgba(var(--pri-rgb),.1);color:var(--pri);border-radius:99px;padding:.2rem .65rem;font-size:.82rem;font-weight:700}
+.foglio{position:fixed;inset:0;z-index:15;background:rgba(15,25,45,.55);display:flex;align-items:flex-end;justify-content:center}
+.foglio[hidden]{display:none}
+.foglio__box{background:var(--card);width:100%;max-width:640px;border-radius:22px 22px 0 0;padding:20px 18px calc(22px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}
+.foglio__box h2{margin:0 0 .5rem}
+.cf-lista{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:.5rem 0}
+.cf-lista div{display:flex;justify-content:space-between;gap:.5rem;padding:.65rem .8rem;border-bottom:1px solid var(--line)}.cf-lista div:last-child{border-bottom:0}
+.cf-lista .avv{color:#c2410c}
 #toast{position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));background:#1b2a41;color:#fff;padding:12px 14px;border-radius:12px;display:none;z-index:9;box-shadow:0 8px 20px rgba(0,0,0,.25)}
 </style>
 </head>
@@ -210,23 +249,43 @@ body.bloccata main{visibility:hidden}
     </button>
   </div>
 
-  <h2 class="shub__sezione">Moduli creati</h2>
-  <div class="shub__elenco" id="storico"></div>
+  <h2 class="shub__sezione">Archivio</h2>
+  <div class="shub__elenco">
+    <button class="shub__riga" data-vai="s-archivio">
+      <span class="shub__tondo"><svg class="sic"><use href="#i-elenco"/></svg></span>
+      <span class="shub__testo"><b>Archivio permessi</b><small id="desc-archivio">I giorni presi mese per mese, per persona · esporta in PDF</small></span>
+      <svg class="sic freccia"><use href="#i-freccia"/></svg>
+    </button>
+  </div>
+  <div id="storico" hidden></div>
 </section>
 
 <!-- COMPILA -->
 <section id="s-compila">
   <button class="indietro" data-vai="s-home"><svg class="sic"><use href="#i-indietro"/></svg>Menu</button>
   <h1 class="shub__titolo">Compila il mese</h1>
+  <div class="card">
+    <div id="box-persona"><label for="persona" style="margin-top:0">Per chi</label><select id="persona"></select></div>
+    <div class="mese-nav">
+      <button class="shub__azione" id="cal-prec" aria-label="Mese precedente"><svg class="sic"><use href="#i-indietro"/></svg></button>
+      <b id="cal-mese"></b>
+      <button class="shub__azione" id="cal-succ" aria-label="Mese successivo"><svg class="sic"><use href="#i-freccia"/></svg></button>
+    </div>
+  </div>
   <div class="scelta2" role="radiogroup" aria-label="Questo mese">
     <button class="scelta2__voce on" id="modo-si" role="radio" aria-checked="true">📅 Chiedo permessi</button>
     <button class="scelta2__voce" id="modo-no" role="radio" aria-checked="false">🚫 Non chiedo permessi</button>
   </div>
   <div class="card solo-si">
-    <h2>Giorni di permesso</h2>
-    <p class="muted">Tocca e scegli la data dal calendario. Se è un giorno solo, lascia vuoto "al".</p>
-    <div id="periodi"></div>
-    <div class="tot" id="totale">Totale giorni: 0</div>
+    <div class="cal-testa"><h2 style="margin:0">Giorni di permesso</h2><span id="contatore" class="contatore">0 / 3 giorni</span></div>
+    <p class="muted">Tocca i giorni che vuoi prendere (massimo 3 al mese). Tocca di nuovo per toglierli.</p>
+    <div class="cal-sett" aria-hidden="true"><span>LUN</span><span>MAR</span><span>MER</span><span>GIO</span><span>VEN</span><span class="we">SAB</span><span class="we">DOM</span></div>
+    <div class="cal-griglia" id="cal-griglia"></div>
+    <div class="msg-err" id="cal-err" hidden></div>
+    <div class="msg-avv" id="cal-avv" hidden></div>
+    <div class="cal-nel" id="cal-periodi"></div>
+    <div class="legenda"><span><i class="lg lg-sel"></i>Scelto</span><span><i class="lg lg-we"></i><span id="lg-we">Sab/Dom</span></span><span><i class="lg lg-fe"></i>Festivo</span></div>
+    <div class="tot" id="totale" hidden></div>
   </div>
   <div class="card solo-si">
     <details id="det-orari"><summary>Permessi orari (facoltativo)</summary>
@@ -235,12 +294,7 @@ body.bloccata main{visibility:hidden}
     </details>
   </div>
   <div class="card">
-    <div id="rif-mese" class="rif"></div>
-    <div class="row" id="scelta-mese">
-      <div><label for="mese">Mese</label><select id="mese"></select></div>
-      <div><label for="anno">Anno</label><input id="anno" type="number" inputmode="numeric"></div>
-    </div>
-    <label for="datacomp">Data di compilazione</label>
+    <label for="datacomp" style="margin-top:0">Data di compilazione</label>
     <input id="datacomp" type="date">
   </div>
   <div class="card solo-no" style="display:none">
@@ -284,6 +338,16 @@ body.bloccata main{visibility:hidden}
     <p class="muted" id="anteprima-nome"></p>
   </div>
   <div class="card">
+    <h2>Persone assistite</h2>
+    <p class="muted">Una o più persone (es. papà e mamma): in «Compila» scegli per chi stai compilando. Il limite di 3 giorni vale per ognuna.</p>
+    <div id="persone"></div>
+    <button class="btn sec" id="b-add-persona">+ Aggiungi persona</button>
+  </div>
+  <div class="card">
+    <h2>Impostazioni</h2>
+    <label class="interr"><input type="checkbox" id="an-bloccaWE"><span><b>Blocca sabato e domenica</b><small>Se è spento si possono scegliere, ma con un avviso.</small></span></label>
+  </div>
+  <div class="card">
     <h2>La tua firma</h2>
     <div class="firma-box" id="firma-vista"><span class="muted">Nessuna firma</span></div>
     <label for="file-firma" class="btn" style="text-transform:none;letter-spacing:0;color:#fff">📷 Fotografa o scegli la firma</label>
@@ -297,6 +361,23 @@ body.bloccata main{visibility:hidden}
     <button class="btn sec" id="b-firma-del" style="display:none">Elimina firma</button>
   </div>
   <button class="btn" id="b-salva-anag">Salva anagrafica</button>
+</section>
+
+<!-- ARCHIVIO -->
+<section id="s-archivio">
+  <button class="indietro" data-vai="s-home"><svg class="sic"><use href="#i-indietro"/></svg>Menu</button>
+  <h1 class="shub__titolo">Archivio</h1>
+  <p class="shub__sub">I giorni presi mese per mese. Si aggiorna da solo quando crei il PDF.</p>
+  <div class="card">
+    <div id="arc-persona-box"><label for="arc-persona" style="margin-top:0">Persona</label><select id="arc-persona"></select></div>
+    <div class="pillole" id="arc-anni"></div>
+  </div>
+  <div class="riep2">
+    <div class="card"><small class="muted">Giorni presi</small><b class="num" id="arc-tot">0</b></div>
+    <div class="card"><small class="muted">Mesi compilati</small><b class="num" id="arc-mesi-n">0 / 12</b></div>
+  </div>
+  <div class="shub__elenco" id="arc-mesi"></div>
+  <button class="btn" id="b-arc-pdf">Esporta in PDF l'anno</button>
 </section>
 
 <!-- INVITO (solo amministratore) -->
@@ -430,6 +511,13 @@ body.bloccata main{visibility:hidden}
   </div>
 </section>
 </main>
+<div class="foglio" id="conferma" hidden>
+  <div class="foglio__box" role="dialog" aria-modal="true" aria-labelledby="cf-titolo">
+    <h2 id="cf-titolo">Confermi?</h2>
+    <div id="cf-corpo"></div>
+    <div class="row"><button class="btn sec" id="cf-no">Correggi</button><button class="btn" id="cf-si">Sì, confermo</button></div>
+  </div>
+</div>
 <div id="blocco" class="blocco" hidden>
   <div class="blocco__box">
     <img src="icon-192.png?v=2" alt="" width="72" height="72">
@@ -453,7 +541,7 @@ body.bloccata main{visibility:hidden}
 <script src="pdf-lib.min.js"></script>
 <script src="word.js?v=2.4"></script>
 <script src="firma.js?v=2.7"></script>
-<script src="app.js?v=3.1"></script>
+<script src="app.js?v=3.3"></script>
 <script src="prepara.js?v=3.0"></script>
 <script src="accesso.js?v=3.0"></script>
 </body>

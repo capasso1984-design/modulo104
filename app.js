@@ -1,13 +1,12 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.1";
+const VERSIONE = "3.3";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
 const ANAG = [
   ["grado","Grado (es. PG)"],["categoria","Categoria / specialità (es. OFPS)"],["cognome","Cognome"],["nome","Nome"],
-  ["reparto","Reparto (es. Compagnia Protezione delle Forze)"],["assistito","Cognome e nome della persona assistita"],
-  ["parentela","Grado di parentela (es. Padre)"],["extra1","Altro dato fisso 1 (facoltativo)"],["extra2","Altro dato fisso 2 (facoltativo)"],
+  ["reparto","Reparto (es. Compagnia Protezione delle Forze)"],["extra1","Altro dato fisso 1 (facoltativo)"],["extra2","Altro dato fisso 2 (facoltativo)"],
   ["motivo_def","Motivo quando non chiedi permessi (va dopo «in quanto»)"]];
 const MOTIVO_PREDEFINITO = "allo stato non risultano esigenze di assistenza già definite per il mese di riferimento; sarà cura dello scrivente darne tempestiva comunicazione non appena le stesse saranno note.";
 const IMPOST_DEF = {
@@ -63,6 +62,8 @@ function mostra(id) {
   window.scrollTo(0, 0);
   if (id === "s-home") aggiornaAvvisi();
   if (id === "s-impost") anteprimaEmail();
+  if (id === "s-archivio") disegnaArchivio();
+  if (id === "s-compila") { costruisciPersonaSel(); disegnaCal(); }
   if ("s-" + location.hash.slice(1) !== id && !(id === "s-home" && !location.hash)) history.replaceState(null, "", id === "s-home" ? location.pathname : "#" + id.slice(2));
 }
 
@@ -70,13 +71,22 @@ function mostra(id) {
 function anag() {
   const a = mem.get("m104_anag", {});
   if (a.motivo_def && a.motivo_def.startsWith("non sono ancora note esigenze di assistenza per il mese in oggetto")) a.motivo_def = MOTIVO_PREDEFINITO;
+  // versioni precedenti: una sola persona assistita
+  if (!Array.isArray(a.persone)) a.persone = a.assistito ? [{ id: "p1", nome: a.assistito, parentela: a.parentela || "" }] : [];
+  if (a.bloccaWE === undefined) a.bloccaWE = true;
   return a;
 }
-function fissi() {
-  const a = anag();
+function persone() { return anag().persone; }
+function personaCorrente() {
+  const ps = persone(), id = mem.get("m104_persona", null);
+  return ps.find((p) => p.id === id) || ps[0] || null;
+}
+function fissi(persona) {
+  const a = anag(), p = persona || personaCorrente();
   const f = Object.assign({}, a);
   f.grado_nome = [a.grado, a.categoria, a.cognome, a.nome].filter(Boolean).join(" ");
   f.cognome_nome = [a.cognome, a.nome].filter(Boolean).join(" ");
+  f.assistito = p ? p.nome : ""; f.parentela = p ? p.parentela : "";
   return f;
 }
 function costruisciAnag() {
@@ -89,18 +99,46 @@ function costruisciAnag() {
     i.addEventListener("input", anteprimaNome);
     box.append(l, i);
   }
+  $("an-bloccaWE").checked = a.bloccaWE !== false;
+  disegnaPersone(a.persone.length ? a.persone : [{ id: "p1", nome: "", parentela: "" }]);
   anteprimaNome();
   mostraFirma();
 }
+function disegnaPersone(lista) {
+  const box = $("persone"); box.innerHTML = "";
+  lista.forEach((p, i) => {
+    const r = document.createElement("div"); r.className = "persona"; r.dataset.id = p.id;
+    r.innerHTML = `<div><label for="pn-${i}">Cognome e nome</label><input id="pn-${i}" class="p-nome" autocomplete="off"></div>
+      <div><label for="pp-${i}">Parentela</label><input id="pp-${i}" class="p-par" autocomplete="off" placeholder="es. Padre"></div>
+      <button class="shub__azione p-del" aria-label="Togli questa persona" title="Togli">✕</button>`;
+    r.querySelector(".p-nome").value = p.nome || ""; r.querySelector(".p-par").value = p.parentela || "";
+    r.querySelector(".p-del").addEventListener("click", () => {
+      if (box.children.length === 1) { r.querySelector(".p-nome").value = ""; r.querySelector(".p-par").value = ""; return; }
+      if (confirm("Togliere questa persona? I suoi giorni in archivio restano salvati.")) r.remove();
+    });
+    box.append(r);
+  });
+}
+function leggiPersone() {
+  return [...$("persone").querySelectorAll(".persona")].map((r) => ({ id: r.dataset.id, nome: r.querySelector(".p-nome").value.trim(), parentela: r.querySelector(".p-par").value.trim() })).filter((p) => p.nome);
+}
+$("b-add-persona").addEventListener("click", () => {
+  const lista = [...$("persone").querySelectorAll(".persona")].map((r) => ({ id: r.dataset.id, nome: r.querySelector(".p-nome").value, parentela: r.querySelector(".p-par").value }));
+  lista.push({ id: "p" + Date.now().toString(36), nome: "", parentela: "" });
+  disegnaPersone(lista);
+  $("persone").lastElementChild.querySelector(".p-nome").focus();
+});
 function anteprimaNome() {
   const v = (k) => ($("an-" + k)?.value || "").trim();
   const gn = [v("grado"), v("categoria"), v("cognome"), v("nome")].filter(Boolean).join(" ");
   $("anteprima-nome").textContent = gn ? `Nel modulo comparirà: "Il Sottoscritto ${gn}"` : "";
 }
 $("b-salva-anag").addEventListener("click", () => {
-  const a = {};
+  const a = mem.get("m104_anag", {});
   for (const [k] of ANAG) a[k] = $("an-" + k).value.trim();
-  if (mem.set("m104_anag", a)) { toast("Anagrafica salvata ✔"); vai("s-home"); }
+  a.persone = leggiPersone(); a.bloccaWE = $("an-bloccaWE").checked;
+  delete a.assistito; delete a.parentela;
+  if (mem.set("m104_anag", a)) { toast("Anagrafica salvata ✔"); costruisciPersonaSel(); vai("s-home"); }
 });
 
 // ---------------------------------------------------------------- firma
@@ -334,23 +372,90 @@ $("b-salva-imp").addEventListener("click", () => {
 });
 
 // ---------------------------------------------------------------- compila
+// calendario: si toccano i giorni; i giorni consecutivi diventano un unico periodo "dal… al…"
+const NOMI_G = ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"];
+const BREVI_G = ["dom", "lun", "mar", "mer", "gio", "ven", "sab"];
+let cal = { mese: 0, anno: 0, sel: new Set() };
+function pasqua(y) {   // algoritmo di Meeus
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const mese = Math.floor((h + l - 7 * m + 114) / 31), giorno = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(y, mese - 1, giorno);
+}
+function festivi(anno) {
+  const f = { "1-1": "Capodanno", "1-6": "Epifania", "4-25": "Festa della Liberazione", "5-1": "Festa del Lavoro", "6-2": "Festa della Repubblica", "8-15": "Ferragosto", "11-1": "Ognissanti", "12-8": "Immacolata Concezione", "12-25": "Natale", "12-26": "Santo Stefano" };
+  const p = pasqua(anno), lp = new Date(anno, p.getMonth(), p.getDate() + 1);
+  f[`${p.getMonth() + 1}-${p.getDate()}`] = "Pasqua"; f[`${lp.getMonth() + 1}-${lp.getDate()}`] = "Lunedì dell'Angelo";
+  return f;
+}
 function costruisciCompila() {
   const oggi = new Date(), prox = new Date(oggi.getFullYear(), oggi.getMonth() + 1, 1);
-  $("mese").innerHTML = MESI.map((m, i) => `<option value="${i + 1}">${m}</option>`).join("");
-  $("mese").value = prox.getMonth() + 1; $("anno").value = prox.getFullYear();
+  cal.mese = prox.getMonth() + 1; cal.anno = prox.getFullYear();
   $("datacomp").value = `${oggi.getFullYear()}-${pad2(oggi.getMonth() + 1)}-${pad2(oggi.getDate())}`;
   let h = "";
-  for (let i = 1; i <= N_PERIODI; i++)
-    h += `<div class="periodo"><span class="lab">${i})</span><label class="mini">dal<input id="dal${i}" type="date"></label><label class="mini">al<input id="al${i}" type="date"></label></div>`;
-  $("periodi").innerHTML = h;
-  h = "";
   for (let i = 1; i <= N_ORARI; i++)
     h += `<div class="og"><input id="og${i}g" type="date" aria-label="Giorno permesso orario ${i}"><input id="og${i}d" type="time" aria-label="Dalle"><input id="og${i}a" type="time" aria-label="Alle"></div>`;
   $("orari").innerHTML = h;
-  // quando scegli "dal", il calendario di "al" parte dallo stesso giorno
-  for (let i = 1; i <= N_PERIODI; i++) $("dal" + i).addEventListener("change", () => { if (!$("al" + i).value) $("al" + i).min = $("dal" + i).value; });
-  document.querySelectorAll("#s-compila input, #s-compila select").forEach((el) => { el.addEventListener("input", totale); el.addEventListener("change", totale); });
+  document.querySelectorAll("#orari input").forEach((el) => el.addEventListener("change", totale));
+  costruisciPersonaSel();
+  caricaMeseDaArchivio();
+}
+function costruisciPersonaSel() {
+  const ps = persone(), cur = personaCorrente();
+  $("persona").innerHTML = ps.map((p) => `<option value="${esc(p.id)}">${esc(p.nome)}${p.parentela ? " (" + esc(p.parentela) + ")" : ""}</option>`).join("");
+  if (cur) $("persona").value = cur.id;
+  $("box-persona").style.display = ps.length > 1 ? "" : "none";
+}
+$("persona").addEventListener("change", () => { mem.set("m104_persona", $("persona").value); caricaMeseDaArchivio(); });
+$("cal-prec").addEventListener("click", () => cambiaMese(-1));
+$("cal-succ").addEventListener("click", () => cambiaMese(1));
+function cambiaMese(dx) {
+  const d = new Date(cal.anno, cal.mese - 1 + dx, 1); cal.mese = d.getMonth() + 1; cal.anno = d.getFullYear();
+  caricaMeseDaArchivio();
+}
+// se il mese è già in archivio per questa persona, ripropone i giorni
+function caricaMeseDaArchivio() {
+  const p = personaCorrente(), r = p && registro(p.id, cal.anno, cal.mese);
+  cal.sel = new Set(r && r.giorni ? r.giorni : []);
+  $("cal-err").hidden = true; $("cal-avv").hidden = true;
+  disegnaCal();
+  if (r) { $("cal-avv").hidden = false; $("cal-avv").textContent = r.nessuno ? "Per questo mese avevi già fatto il modulo «nessun permesso». Se ne crei uno nuovo, lo sostituisce." : "Questi sono i giorni già registrati per questo mese: se crei un nuovo modulo, li sostituisce."; }
+}
+function disegnaCal() {
+  $("cal-mese").textContent = `${MESI[cal.mese - 1]} ${cal.anno}`;
+  const a = anag(), blocco = a.bloccaWE !== false, fest = festivi(cal.anno), oggi = new Date();
+  $("lg-we").textContent = blocco ? "Sab/Dom: bloccati" : "Sab/Dom: con avviso";
+  const primo = new Date(cal.anno, cal.mese - 1, 1), vuoti = (primo.getDay() + 6) % 7, nGiorni = new Date(cal.anno, cal.mese, 0).getDate();
+  const g = $("cal-griglia"); g.innerHTML = "";
+  for (let i = 0; i < vuoti; i++) { const s = document.createElement("span"); s.className = "cal-g vuoto"; g.append(s); }
+  for (let d = 1; d <= nGiorni; d++) {
+    const dt = new Date(cal.anno, cal.mese - 1, d), wd = dt.getDay(), we = wd === 0 || wd === 6, fe = fest[`${cal.mese}-${d}`];
+    const b = document.createElement("button"); b.type = "button"; b.textContent = d;
+    b.className = "cal-g" + (we ? " we" + (blocco ? " bloc" : "") : "") + (fe ? " fe" : "") + (cal.sel.has(d) ? " sel" : "") + (dt.toDateString() === oggi.toDateString() ? " oggi" : "");
+    b.setAttribute("aria-label", `${NOMI_G[wd]} ${d} ${MESI[cal.mese - 1]}${fe ? ", festivo" : ""}${cal.sel.has(d) ? ", scelto" : ""}`);
+    b.setAttribute("aria-pressed", cal.sel.has(d) ? "true" : "false");
+    b.addEventListener("click", () => toccaGiorno(d));
+    g.append(b);
+  }
   totale();
+}
+function toccaGiorno(d) {
+  const dt = new Date(cal.anno, cal.mese - 1, d), wd = dt.getDay(), we = wd === 0 || wd === 6, fe = festivi(cal.anno)[`${cal.mese}-${d}`];
+  const err = $("cal-err"), avv = $("cal-avv"); err.hidden = true; avv.hidden = true;
+  if (cal.sel.has(d)) { cal.sel.delete(d); disegnaCal(); return; }
+  if (we && anag().bloccaWE !== false) {
+    err.hidden = false; err.textContent = `${NOMI_G[wd][0].toUpperCase() + NOMI_G[wd].slice(1)} ${d}: sabato e domenica sono bloccati (puoi sbloccarli in Anagrafica → Impostazioni).`;
+    return;
+  }
+  cal.sel.add(d); disegnaCal();
+  if (we) { avv.hidden = false; avv.textContent = `Attenzione: hai scelto ${NOMI_G[wd]} ${d}. È un fine settimana: controlla che sia corretto.`; }
+  else if (fe) { avv.hidden = false; avv.textContent = `Attenzione: il ${d} ${MESI[cal.mese - 1].toLowerCase()} è festivo (${fe}).`; }
+}
+// giorni scelti -> periodi (i consecutivi si uniscono)
+function periodiDa(giorni) {
+  const g = [...giorni].sort((a, b) => a - b), out = [];
+  for (const d of g) { const u = out[out.length - 1]; if (u && d === u[1] + 1) u[1] = d; else out.push([d, d]); }
+  return out;
 }
 // legge una data "aaaa-mm-gg" del calendario
 function dataDa(s) { const [y, m, d] = s.split("-").map(Number); return { y, m, d }; }
@@ -386,31 +491,18 @@ $("b-motivo-salva").addEventListener("click", () => {
 $("modo-si").addEventListener("click", () => impostaModo(false));
 $("modo-no").addEventListener("click", () => impostaModo(true));
 function leggiMese() {
-  const periodi = [], orari = [], date = [];
-  for (let i = 1; i <= N_PERIODI; i++) {
-    const a = $("dal" + i).value, b = $("al" + i).value;
-    if (!a && !b) continue;
-    if (!a) throw new Error(`Periodo ${i}: manca la data "dal"`);
-    const d1 = dataDa(a), d2 = dataDa(b || a);
-    if (b && b < a) throw new Error(`Periodo ${i}: "al" è prima di "dal"`);
-    periodi.push([d1, d2]); date.push(d1, d2);
-  }
-  for (let i = 1; i <= N_ORARI; i++) {
-    const g = $(`og${i}g`).value; if (!g) continue;
-    const d = dataDa(g); orari.push([d, $(`og${i}d`).value, $(`og${i}a`).value]); date.push(d);
-  }
-  // il mese di riferimento si ricava dalle date; se non ci sono date si usa quello scelto a mano
-  let mese = +$("mese").value, anno = +$("anno").value, daDate = false;
-  if (date.length) {
-    const mesi = new Set(date.map((d) => d.y * 100 + d.m));
-    if (mesi.size > 1) throw new Error("Le date sono in mesi diversi: il modulo è mensile, fai un modulo per ogni mese");
-    mese = date[0].m; anno = date[0].y; daDate = true;
-  }
-  if (!anno || anno < 2000) throw new Error("Anno non valido");
+  const mese = cal.mese, anno = cal.anno;
   const dc = $("datacomp").value;
   const data = dc ? dc.split("-").reverse().join("/") : fmt(new Date());
-  if (nonChiedo) return { mese: +$("mese").value, anno: +$("anno").value, daDate: false, periodi: [], orari: [], data, motivo: $("motivo").value.trim() || anag().motivo_def || MOTIVO_PREDEFINITO };
-  return { mese, anno, daDate, periodi: periodi.map(([a, b]) => [a.d, b.d]), orari: orari.map(([d, h1, h2]) => [d.d, h1, h2]), data, motivo: "" };
+  if (nonChiedo) return { mese, anno, daDate: false, periodi: [], orari: [], data, motivo: $("motivo").value.trim() || anag().motivo_def || MOTIVO_PREDEFINITO };
+  const orari = [];
+  for (let i = 1; i <= N_ORARI; i++) {
+    const g = $(`og${i}g`).value; if (!g) continue;
+    const d = dataDa(g);
+    if (d.m !== mese || d.y !== anno) throw new Error(`Permesso orario ${i}: la data non è in ${MESI[mese - 1]} ${anno}`);
+    orari.push([d.d, $(`og${i}d`).value, $(`og${i}a`).value]);
+  }
+  return { mese, anno, daDate: true, periodi: periodiDa(cal.sel), orari, data, motivo: "", giorni: [...cal.sel].sort((a, b) => a - b) };
 }
 function calcolaValori(m) {
   const v = { mese: MESI[m.mese - 1], anno: String(m.anno), mese_anno: `${MESI[m.mese - 1]} ${m.anno}`, data_compilazione: m.data, motivo: m.motivo };
@@ -430,13 +522,13 @@ function calcolaValori(m) {
   return v;
 }
 function totale() {
-  try {
-    const m = leggiMese(), v = calcolaValori(m);
-    $("rif-mese").innerHTML = m.daDate ? `Mese di riferimento: <b>${v.mese_anno}</b> <span class="muted">(dalle date)</span>` : "Nessuna data: scegli qui sotto il mese di riferimento";
-    $("scelta-mese").style.display = m.daDate ? "none" : "flex";
-    $("totale").className = "tot";
-    $("totale").textContent = `Totale giorni: ${v._giorni}` + (v._giorni ? ` (${v.giorni_lettere})` : "") + (v._orari ? ` · permessi orari: ${v._orari}` : "");
-  } catch (e) { $("totale").className = "tot err"; $("totale").textContent = e.message; $("rif-mese").textContent = ""; }
+  const n = cal.sel.size, c = $("contatore");
+  c.textContent = `${n} / 3 giorni`;
+  c.className = "contatore" + (n > 3 ? " oltre" : n === 3 ? " ok" : "");
+  if (n > 3) { $("cal-err").hidden = false; $("cal-err").textContent = `Hai superato il limite: ${n} giorni su 3. Togline ${n - 3}.`; }
+  const p = periodiDa(cal.sel), mm = pad2(cal.mese);
+  $("cal-periodi").innerHTML = p.length ? "<b>Nel modulo:</b> " + p.map(([a, b]) => `dal ${pad2(a)}/${mm} al ${pad2(b)}/${mm}`).join(" · ") : "";
+  $("b-crea").disabled = !nonChiedo && n > 3;
 }
 function riempi(tpl, dati) { return String(tpl || "").replace(/\{(\w+)\}/g, (m, k) => (dati[k] !== undefined ? dati[k] : m)); }
 function spuntata(regola, v) {
@@ -481,7 +573,7 @@ async function creaPdf(m, pacchetto = window.M104 && window.M104.attuale()) {
   const pagine = doc.getPages();
   const firma = mem.get("m104_firma", null);
   let firmaImg = null;
-  if (firma) firmaImg = await doc.embedPng(b64bytes(firma.split(",")[1]));
+  if (firma) firmaImg = /^data:image\/jpe?g/.test(firma) ? await doc.embedJpg(b64bytes(firma.split(",")[1])) : await doc.embedPng(b64bytes(firma.split(",")[1]));
   const nero = rgb(0, 0, 0);
   // il motivo lungo continua sulle righe successive del modulo
   const righeMotivo = {};
@@ -537,20 +629,53 @@ async function creaPdf(m, pacchetto = window.M104 && window.M104.attuale()) {
   doc.setTitle(`Modulo L.104 ${v.mese_anno}`);
   const bytes = await doc.save();
   const imp = impost(), dati = Object.assign({}, f, v);
-  const nome = (riempi(imp.nomefile, dati).replace(/[<>:"/\\|?*]/g, "-").replace(/\s+/g, " ").trim() || "Modulo 104") + ".pdf";
+  // con più persone assistite, il nome del file dice anche per chi è
+  const perChi = persone().length > 1 && f.assistito && !imp.nomefile.includes("{assistito}") ? " - " + f.assistito : "";
+  const nome = ((riempi(imp.nomefile, dati) + perChi).replace(/[<>:"/\\|?*]/g, "-").replace(/\s+/g, " ").trim() || "Modulo 104") + ".pdf";
   return { blob: new Blob([bytes], { type: "application/pdf" }), nome, oggetto: riempi(imp.oggetto, dati), testo: riempi(imp.testo, dati), periodi: v.periodi, valori: v };
 }
 
-$("b-crea").addEventListener("click", async () => {
+$("b-crea").addEventListener("click", () => {
   if (!pacchetto) { toast("Prima carica il modulo da compilare"); vai("s-modulo"); return; }
   if (!anag().cognome) { toast("Prima compila l'anagrafica"); vai("s-anag"); return; }
+  const persona = personaCorrente();
+  if (!persona) { toast("Aggiungi la persona assistita in Anagrafica"); vai("s-anag"); return; }
   let m;
-  try { m = leggiMese(); } catch (e) { toast(e.message); return; }
-  if (!m.periodi.length && !m.orari.length && !confirm("Non hai inserito giorni né permessi orari. Creo il modulo con 'non richiede i permessi'?")) return;
-  if (!mem.get("m104_firma", null) && !confirm("Non hai ancora una firma salvata. Creo il PDF senza firma?")) return;
+  try { m = leggiMese(); } catch (e) { toast(e.message, 5000); return; }
+  if (!nonChiedo && !m.periodi.length && !m.orari.length) { toast("Tocca i giorni nel calendario, oppure scegli «Non chiedo permessi»", 5000); return; }
+  if (!nonChiedo && cal.sel.size > 3) { toast("Massimo 3 giorni al mese: togline qualcuno"); return; }
+  apriConferma(m, persona);
+});
+// finestra di conferma: elenco dei giorni con il nome del giorno, prima di creare il PDF
+let daConfermare = null;
+function apriConferma(m, persona) {
+  daConfermare = m;
+  const fest = festivi(m.anno), mm = pad2(m.mese);
+  const per = `per <b>${esc(persona.nome)}</b>${persona.parentela ? " (" + esc(persona.parentela) + ")" : ""}`;
+  let h = "";
+  if (nonChiedo) {
+    $("cf-titolo").textContent = `${MESI[m.mese - 1]} ${m.anno}: nessun permesso`;
+    h = `<p>Modulo ${per}: <b>non chiedi permessi</b> questo mese.</p><p class="muted">Motivo: «${esc(m.motivo)}»</p>`;
+  } else {
+    const n = m.giorni.length;
+    $("cf-titolo").textContent = n ? `Hai selezionato ${n} ${n === 1 ? "giorno" : "giorni"}` : "Permessi orari";
+    h = `<p>${MESI[m.mese - 1]} ${m.anno}, ${per}:</p><div class="cf-lista">` + m.giorni.map((d) => {
+      const dt = new Date(m.anno, m.mese - 1, d), wd = dt.getDay(), avv = wd === 0 || wd === 6 ? " (fine settimana)" : fest[`${m.mese}-${d}`] ? ` (${fest[`${m.mese}-${d}`]})` : "";
+      return `<div><b class="${avv ? "avv" : ""}" style="text-transform:capitalize">${NOMI_G[wd]}${avv}</b><span>${pad2(d)}/${mm}/${m.anno}</span></div>`;
+    }).join("") + m.orari.map(([g, a, b]) => `<div><b style="text-transform:capitalize">${NOMI_G[new Date(m.anno, m.mese - 1, g).getDay()]} (orario)</b><span>${pad2(g)}/${mm} · ${esc(a)}-${esc(b)}</span></div>`).join("") + "</div>";
+    if (m.periodi.length) h += `<p class="muted">Nel modulo: ${m.periodi.map(([a, b]) => `dal ${pad2(a)}/${mm}/${m.anno} al ${pad2(b)}/${mm}/${m.anno}`).join(" · ")}</p>`;
+  }
+  if (!mem.get("m104_firma", null)) h += `<p class="err">Attenzione: non hai ancora salvato la firma, il PDF sarà senza firma.</p>`;
+  $("cf-corpo").innerHTML = h;
+  $("conferma").hidden = false;
+}
+$("cf-no").addEventListener("click", () => { $("conferma").hidden = true; daConfermare = null; });
+$("cf-si").addEventListener("click", async () => {
+  const m = daConfermare; $("conferma").hidden = true; daConfermare = null; if (!m) return;
   const b = $("b-crea"); b.disabled = true; b.textContent = "Creo il PDF…";
   try {
     ultimo = await creaPdf(m);
+    registra(personaCorrente(), m);
     $("nomepdf").textContent = ultimo.nome + " · " + ultimo.periodi;
     $("risultato").style.display = "block";
     anteprima(ultimo.blob);
@@ -621,6 +746,86 @@ $("b-gmail").addEventListener("click", () => {
   const t = Date.now();
   window.location.href = app;
   setTimeout(() => { if (Date.now() - t < 2500 && !document.hidden) window.open(web, "_blank"); }, 1200);
+});
+
+// ---------------------------------------------------------------- archivio
+// per ogni persona: { "aaaa-mm": { giorni:[...], orari:[[g,dalle,alle]], nessuno, motivo, creato } }
+function archivio() { return mem.get("m104_archivio", {}); }
+function registro(pid, anno, mese) { const a = archivio(); return (a[pid] || {})[`${anno}-${pad2(mese)}`] || null; }
+function registra(persona, m) {
+  if (!persona) return;
+  const a = archivio(); a[persona.id] = a[persona.id] || {};
+  a[persona.id][`${m.anno}-${pad2(m.mese)}`] = { giorni: m.giorni || [], orari: m.orari || [], nessuno: !!nonChiedo, motivo: nonChiedo ? m.motivo : "", creato: fmt(new Date()), nome: persona.nome };
+  mem.set("m104_archivio", a);
+}
+let arcAnno = new Date().getFullYear();
+function disegnaArchivio() {
+  const ps = persone(), a = archivio();
+  // anche persone tolte dall'anagrafica ma con giorni in archivio
+  const tutte = ps.slice(); for (const pid of Object.keys(a)) if (!tutte.find((p) => p.id === pid)) { const r = Object.values(a[pid])[0]; tutte.push({ id: pid, nome: (r && r.nome) || "Persona tolta", parentela: "" }); }
+  const sel = $("arc-persona"), prima = sel.value || (personaCorrente() || {}).id;
+  sel.innerHTML = tutte.map((p) => `<option value="${esc(p.id)}">${esc(p.nome)}${p.parentela ? " (" + esc(p.parentela) + ")" : ""}</option>`).join("");
+  if (prima && tutte.find((p) => p.id === prima)) sel.value = prima;
+  $("arc-persona-box").style.display = tutte.length > 1 ? "" : "none";
+  const pid = sel.value, dati = a[pid] || {};
+  const anni = new Set([new Date().getFullYear(), new Date().getFullYear() + 1, ...Object.keys(dati).map((k) => +k.slice(0, 4))]);
+  $("arc-anni").innerHTML = [...anni].sort().map((y) => `<button class="pill${y === arcAnno ? " on" : ""}" data-anno="${y}">${y}</button>`).join("");
+  $("arc-anni").querySelectorAll("[data-anno]").forEach((b) => b.addEventListener("click", () => { arcAnno = +b.dataset.anno; disegnaArchivio(); }));
+  let tot = 0, comp = 0;
+  $("arc-mesi").innerHTML = MESI.map((nome, i) => {
+    const r = dati[`${arcAnno}-${pad2(i + 1)}`];
+    let badge = '<span class="badge vuoto">Non compilato</span>', corpo = "";
+    if (r && r.nessuno) { comp++; badge = '<span class="badge no">Nessun permesso</span>'; corpo = `<small class="muted">Motivo: «${esc(r.motivo)}»</small>`; }
+    else if (r) {
+      comp++; tot += r.giorni.length;
+      badge = `<span class="badge${r.giorni.length === 3 ? " ok" : ""}">${r.giorni.length} / 3 giorni</span>`;
+      corpo = `<div class="chips">${r.giorni.map((d) => `<span class="chip">${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${pad2(d)}/${pad2(i + 1)}</span>`).join("")}${r.orari.map(([g, x, y]) => `<span class="chip">${pad2(g)}/${pad2(i + 1)} ${esc(x)}-${esc(y)}</span>`).join("")}</div>`;
+    }
+    const cancella = r ? `<button class="shub__azione" data-cancella="${arcAnno}-${pad2(i + 1)}" aria-label="Cancella ${nome} dall'archivio" title="Cancella">✕</button>` : "";
+    return `<div class="arc-mese"><div class="arc-testa"><b>${nome}</b><span style="display:flex;gap:6px;align-items:center">${badge}${cancella}</span></div>${corpo}${r ? `<small class="muted">Modulo creato il ${esc(r.creato)}</small>` : ""}</div>`;
+  }).join("");
+  $("arc-mesi").querySelectorAll("[data-cancella]").forEach((b) => b.addEventListener("click", () => {
+    if (!confirm("Cancellare questo mese dall'archivio? Il PDF già inviato non cambia.")) return;
+    const ar = archivio(); delete (ar[pid] || {})[b.dataset.cancella]; mem.set("m104_archivio", ar); disegnaArchivio();
+  }));
+  $("arc-tot").textContent = String(tot); $("arc-mesi-n").textContent = `${comp} / 12`;
+}
+$("arc-persona").addEventListener("change", disegnaArchivio);
+// riepilogo dell'anno in PDF
+$("b-arc-pdf").addEventListener("click", async () => {
+  const pid = $("arc-persona").value, dati = archivio()[pid] || {}, opt = $("arc-persona").selectedOptions[0];
+  const chi = opt ? opt.textContent : "";
+  const { PDFDocument, StandardFonts, rgb } = PDFLib;
+  const doc = await PDFDocument.create(), pg = doc.addPage([595.28, 841.89]);
+  const f = await doc.embedFont(StandardFonts.TimesRoman), fb = await doc.embedFont(StandardFonts.TimesRomanBold);
+  const blu = rgb(0.11, 0.37, 0.77), grigio = rgb(0.35, 0.4, 0.47), nero = rgb(0, 0, 0);
+  const t = (s, x, y, o = {}) => pg.drawText(pulisciTesto(String(s), o.font || f), { x, y, size: o.size || 11, font: o.font || f, color: o.color || nero });
+  const fi = fissi();
+  t("Riepilogo permessi L.104/92", 56, 790, { font: fb, size: 18, color: blu });
+  t(`Anno ${arcAnno}`, 56, 768, { font: fb, size: 13 });
+  t(`Richiedente: ${fi.grado_nome}`, 56, 748); t(`Persona assistita: ${chi}`, 56, 732);
+  let y = 700;
+  pg.drawRectangle({ x: 56, y: y - 4, width: 483, height: 20, color: rgb(0.92, 0.94, 0.98) });
+  t("Mese", 62, y + 2, { font: fb }); t("Giorni", 150, y + 2, { font: fb }); t("Dettaglio", 205, y + 2, { font: fb });
+  y -= 22; let tot = 0;
+  MESI.forEach((nome, i) => {
+    const r = dati[`${arcAnno}-${pad2(i + 1)}`];
+    let n = "-", det = "non compilato";
+    if (r && r.nessuno) { n = "0"; det = "nessun permesso richiesto"; }
+    else if (r) {
+      n = String(r.giorni.length); tot += r.giorni.length;
+      det = r.giorni.map((d) => `${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${pad2(d)}/${pad2(i + 1)}`).join(", ") + (r.orari.length ? (r.giorni.length ? "; " : "") + r.orari.map(([g, a, b]) => `${pad2(g)}/${pad2(i + 1)} ${a}-${b}`).join(", ") : "");
+    }
+    t(nome, 62, y); t(n, 165, y); t(det, 205, y, { size: 10, color: r ? nero : grigio });
+    pg.drawLine({ start: { x: 56, y: y - 6 }, end: { x: 539, y: y - 6 }, thickness: 0.4, color: rgb(0.8, 0.83, 0.88) });
+    y -= 24;
+  });
+  t(`Totale giorni nell'anno: ${tot}`, 56, y - 6, { font: fb, size: 12 });
+  t(`Documento generato il ${fmt(new Date())} con l'app Modulo 104 (promemoria personale, non sostituisce il modulo ufficiale).`, 56, 60, { size: 8, color: grigio });
+  const bytes = await doc.save(), nomeFile = `Riepilogo permessi 104 ${arcAnno} - ${chi.replace(/[<>:"/\\|?*]/g, "-")}.pdf`;
+  const file = new File([bytes], nomeFile, { type: "application/pdf" });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: nomeFile }); return; } catch (e) { if (e.name === "AbortError") return; } }
+  const url = URL.createObjectURL(file), a = document.createElement("a"); a.href = url; a.download = nomeFile; a.target = "_blank"; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
 });
 
 // ---------------------------------------------------------------- avvio
