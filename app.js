@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.13";
+const VERSIONE = "3.14";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -63,7 +63,7 @@ function mostra(id) {
   if (id === "s-home") aggiornaAvvisi();
   if (id === "s-impost") anteprimaEmail();
   if (id === "s-archivio") disegnaArchivio();
-  if (id === "s-compila") { costruisciPersonaSel(); if (apriPasso2) { apriPasso2 = false; caricaMeseDaArchivio(); passo(2); } else passo(1); }
+  if (id === "s-compila") { costruisciPersonaSel(); if (apriPasso2) { apriPasso2 = false; caricaMeseDaArchivio(); passo(2); } else { $("risultato").style.display = "none"; passo(1); } }
   if ("s-" + location.hash.slice(1) !== id && !(id === "s-home" && !location.hash)) history.replaceState(null, "", id === "s-home" ? location.pathname : "#" + id.slice(2));
 }
 
@@ -499,6 +499,12 @@ function passo(n) {
   window.scrollTo(0, 0);
 }
 $("b-avanti").addEventListener("click", () => passo(2));
+// fine della procedura: si esce e si riparte pulito la prossima volta
+$("b-chiudi").addEventListener("click", () => {
+  $("risultato").style.display = "none"; $("nomepdf151").style.display = $("anteprima151").style.display = "none";
+  $("anteprima").innerHTML = ""; $("anteprima151").innerHTML = "";
+  vai("s-home"); toast("Fatto ✔ Il mese è in Archivio");
+});
 $("b-torna-turni").addEventListener("click", () => passo(1));
 function toccaGiorno(d) {
   const dt = new Date(cal.anno, cal.mese - 1, d), wd = dt.getDay(), we = wd === 0 || wd === 6, fe = festivi(cal.anno)[`${cal.mese}-${d}`];
