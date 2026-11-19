@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.7";
+const VERSIONE = "3.8";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -63,7 +63,7 @@ function mostra(id) {
   if (id === "s-home") aggiornaAvvisi();
   if (id === "s-impost") anteprimaEmail();
   if (id === "s-archivio") disegnaArchivio();
-  if (id === "s-compila") { costruisciPersonaSel(); disegnaCal(); }
+  if (id === "s-compila") { costruisciPersonaSel(); passo(1); }
   if ("s-" + location.hash.slice(1) !== id && !(id === "s-home" && !location.hash)) history.replaceState(null, "", id === "s-home" ? location.pathname : "#" + id.slice(2));
 }
 
@@ -447,13 +447,14 @@ function disegnaCal() {
   const turni = turniMese();
   g.classList.toggle("turni-on", cal.modo === "turni");
   const tl = [...turni].sort((x, y) => x - y);
+  $("b-avanti").textContent = tl.length ? `Avanti: scegli i giorni 104 →` : "Nessun turno da segnare, vai avanti →";
   $("cal-turni").innerHTML = tl.length ? `<b>I tuoi turni:</b> ${tl.map((d) => `${NOMI_G[new Date(cal.anno, cal.mese - 1, d).getDay()].slice(0, 3)} ${d}`).join(" · ")}` : "";
   for (let i = 0; i < vuoti; i++) { const s = document.createElement("span"); s.className = "cal-g vuoto"; g.append(s); }
   for (let d = 1; d <= nGiorni; d++) {
     const dt = new Date(cal.anno, cal.mese - 1, d), wd = dt.getDay(), we = wd === 0 || wd === 6, fe = fest[`${cal.mese}-${d}`];
     const b = document.createElement("button"); b.type = "button"; b.textContent = d;
-    const tu = turni.has(d), premuto = cal.modo === "turni" ? tu : cal.sel.has(d);
-    b.className = "cal-g" + (we ? " we" + (blocco ? " bloc" : "") : "") + (fe ? " fe" : "") + (cal.sel.has(d) ? " sel" : "") + (tu ? " tu" : "") + (dt.toDateString() === oggi.toDateString() ? " oggi" : "");
+    const tu = turni.has(d), sc = cal.modo !== "turni" && cal.sel.has(d), premuto = cal.modo === "turni" ? tu : sc;
+    b.className = "cal-g" + (we ? " we" + (blocco ? " bloc" : "") : "") + (fe ? " fe" : "") + (sc ? " sel" : "") + (tu ? " tu" : "") + (dt.toDateString() === oggi.toDateString() ? " oggi" : "");
     b.setAttribute("aria-label", `${NOMI_G[wd]} ${d} ${MESI[cal.mese - 1]}${fe ? ", festivo" : ""}${tu ? ", turno di servizio" : ""}${cal.sel.has(d) ? ", scelto per la 104" : ""}`);
     b.setAttribute("aria-pressed", premuto ? "true" : "false");
     b.addEventListener("click", () => toccaGiorno(d));
@@ -471,12 +472,20 @@ function salvaTurni(set) {
 }
 function modoCal(m) {
   cal.modo = m;
-  for (const [id, v] of [["cal-m104", "104"], ["cal-mturni", "turni"]]) { $(id).classList.toggle("on", m === v); $(id).setAttribute("aria-checked", m === v ? "true" : "false"); }
-  $("cal-istr").textContent = m === "turni" ? "Tocca i giorni in cui monti il turno di servizio. Poi torna su «Giorni 104» per scegliere i permessi." : "Tocca i giorni che vuoi prendere (massimo 3 al mese). Tocca di nuovo per toglierli.";
+  $("cal-titolo").textContent = m === "turni" ? "I tuoi turni di servizio" : "Giorni di permesso 104";
+  $("cal-istr").innerHTML = m === "turni" ? "Tocca i giorni in cui monti il servizio. <b>Facoltativo</b>: se non ti serve, vai avanti." : "Tocca i giorni che vuoi prendere (massimo 3 al mese). I tuoi turni sono in verde.";
   $("cal-err").hidden = true; $("cal-avv").hidden = true; disegnaCal();
 }
-$("cal-m104").addEventListener("click", () => modoCal("104"));
-$("cal-mturni").addEventListener("click", () => modoCal("turni"));
+// procedura guidata: 1 turni (facoltativo) -> 2 giorni 104 -> 3 PDF
+function passo(n) {
+  const s = $("s-compila"); s.classList.toggle("passo1", n === 1); s.classList.toggle("passo2", n === 2);
+  $("ps1").className = n === 1 ? "on" : "fatto"; $("ps2").className = n === 2 ? "on" : ""; $("ps3").className = "";
+  modoCal(n === 1 ? "turni" : "104");
+  if (n === 2) totale();
+  window.scrollTo(0, 0);
+}
+$("b-avanti").addEventListener("click", () => passo(2));
+$("b-torna-turni").addEventListener("click", () => passo(1));
 function toccaGiorno(d) {
   const dt = new Date(cal.anno, cal.mese - 1, d), wd = dt.getDay(), we = wd === 0 || wd === 6, fe = festivi(cal.anno)[`${cal.mese}-${d}`];
   const err = $("cal-err"), avv = $("cal-avv"); err.hidden = true; avv.hidden = true;
@@ -567,8 +576,8 @@ function calcolaValori(m) {
 function totale() {
   const n = cal.sel.size, c = $("contatore");
   c.textContent = `${n} / 3 giorni`;
-  c.className = "contatore" + (n > 3 ? " oltre" : n === 3 ? " ok" : "");
-  if (n > 3) { $("cal-err").hidden = false; $("cal-err").textContent = `Hai superato il limite: ${n} giorni su 3. Togline ${n - 3}.`; }
+  c.className = "contatore solo-p2" + (n > 3 ? " oltre" : n === 3 ? " ok" : "");
+  if (n > 3 && cal.modo !== "turni") { $("cal-err").hidden = false; $("cal-err").textContent = `Hai superato il limite: ${n} giorni su 3. Togline ${n - 3}.`; }
   const p = periodiDa(cal.sel), mm = pad2(cal.mese);
   $("cal-periodi").innerHTML = p.length ? "<b>Nel modulo:</b> " + p.map(([a, b]) => `dal ${pad2(a)}/${mm} al ${pad2(b)}/${mm}`).join(" · ") : "";
   $("b-crea").disabled = !nonChiedo && n > 3;
@@ -720,7 +729,7 @@ $("cf-si").addEventListener("click", async () => {
     ultimo = await creaPdf(m);
     registra(personaCorrente(), m);
     $("nomepdf").textContent = ultimo.nome + " · " + ultimo.periodi;
-    $("risultato").style.display = "block";
+    $("risultato").style.display = "block"; $("ps2").className = "fatto"; $("ps3").className = "on";
     anteprima(ultimo.blob);
     const st = mem.get("m104_storico", []);
     st.unshift({ nome: ultimo.nome, periodi: ultimo.periodi, quando: fmt(new Date()) });
