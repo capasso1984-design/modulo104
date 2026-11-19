@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Modulo 104</title>
+<meta name="description" content="Compilazione del modulo di programmazione permessi L.104/92">
+<meta name="theme-color" content="#1f4e79">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Modulo 104">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--txt:#1b1f24;--muted:#66707c;--pri:#1f4e79;--pri2:#2d6aa3;--ok:#1e7d3a;--err:#b3261e;--line:#d9dee5}
+@media (prefers-color-scheme:dark){:root{--bg:#121417;--card:#1c1f24;--txt:#e9ecef;--muted:#9aa4af;--pri:#5b9bd5;--pri2:#7fb2e0;--line:#30353c}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--pri);color:#fff;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px}
+header h1{margin:0;font-size:18px}
+header small{opacity:.85}
+main{padding:12px 16px calc(90px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;border:0;background:none;color:var(--muted);padding:9px 2px 8px;font-size:12px}
+nav button b{display:block;font-size:20px;line-height:1.1}
+nav button.on{color:var(--pri)}
+section{display:none}section.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.card h2{font-size:16px;margin:0 0 10px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input,select,textarea{width:100%;font-size:16px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--txt)}
+textarea{min-height:110px}
+.row{display:flex;gap:8px;align-items:flex-end}
+.row>*{flex:1}
+.row .lab{flex:0 0 auto;padding-bottom:12px;color:var(--muted);font-size:14px}
+.btn{display:block;width:100%;border:0;border-radius:10px;padding:14px;font-size:16px;font-weight:600;background:var(--pri);color:#fff;margin-top:10px}
+.btn.sec{background:transparent;color:var(--pri);border:1px solid var(--pri)}
+.btn:disabled{opacity:.45}
+.tot{font-weight:700;margin-top:8px}
+.muted{color:var(--muted);font-size:13px}
+.err{color:var(--err)}.ok{color:var(--ok)}
+.firma-box{background:#fff;border:1px dashed var(--line);border-radius:8px;min-height:90px;display:flex;align-items:center;justify-content:center;margin-top:8px}
+.firma-box img{max-width:90%;max-height:110px}
+#pad{width:100%;height:180px;background:#fff;border:1px solid var(--line);border-radius:8px;touch-action:none;display:block}
+details summary{cursor:pointer;font-weight:600;padding:4px 0}
+.og{display:grid;grid-template-columns:1fr 1.3fr 1.3fr;gap:6px;margin-top:6px}
+.badge{display:inline-block;background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:2px 10px;font-size:13px}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(80px + env(safe-area-inset-bottom));background:#222;color:#fff;padding:12px 14px;border-radius:10px;display:none;z-index:9}
+ul.storico{list-style:none;padding:0;margin:0}ul.storico li{padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+</style>
+</head>
+<body>
+<header><h1>Modulo 104</h1><small id="sottotitolo">Programmazione permessi L.104/92</small></header>
+<main>
+
+<!-- COMPILA -->
+<section id="s-compila" class="on">
+  <div class="card" id="avvisi"></div>
+  <div class="card">
+    <h2>Mese</h2>
+    <div class="row">
+      <div><label for="mese">Mese</label><select id="mese"></select></div>
+      <div><label for="anno">Anno</label><input id="anno" type="number" inputmode="numeric"></div>
+    </div>
+    <label for="datacomp">Data di compilazione</label>
+    <input id="datacomp" type="date">
+  </div>
+  <div class="card">
+    <h2>Giorni di permesso</h2>
+    <p class="muted">Scrivi solo il numero del giorno. Lascia vuoto "al" se è un giorno solo.</p>
+    <div id="periodi"></div>
+    <div class="tot" id="totale">Totale giorni: 0</div>
+  </div>
+  <div class="card">
+    <details id="det-orari"><summary>Permessi orari (facoltativo)</summary>
+      <div class="og muted"><span>Giorno</span><span>Dalle</span><span>Alle</span></div>
+      <div id="orari"></div>
+    </details>
+  </div>
+  <div class="card">
+    <label for="motivo">Se questo mese non chiedi permessi, motivo (facoltativo)</label>
+    <input id="motivo" type="text">
+  </div>
+  <button class="btn" id="b-crea">Crea PDF</button>
+  <div class="card" id="risultato" style="display:none;margin-top:12px">
+    <h2>PDF pronto ✔</h2>
+    <p id="nomepdf" class="muted"></p>
+    <button class="btn" id="b-invia">Invia (Gmail, WhatsApp…)</button>
+    <button class="btn sec" id="b-apri">Apri / salva PDF</button>
+    <button class="btn sec" id="b-oggetto">Copia l'oggetto dell'email</button>
+    <button class="btn sec" id="b-gmail">Apri Gmail con oggetto e testo (senza allegato)</button>
+    <p class="muted">Con "Invia" scegli Gmail: il PDF è già allegato. L'oggetto viene copiato da solo, tienilo premuto nel campo Oggetto e scegli "Incolla".</p>
+  </div>
+  <div class="card"><h2>Moduli creati</h2><ul class="storico" id="storico"></ul></div>
+</section>
+
+<!-- ANAGRAFICA -->
+<section id="s-anag">
+  <div class="card">
+    <h2>I tuoi dati</h2>
+    <p class="muted">Si inseriscono una volta sola e restano salvati solo su questo telefono.</p>
+    <div id="campi-anag"></div>
+    <p class="muted" id="anteprima-nome"></p>
+  </div>
+  <div class="card">
+    <h2>La tua firma</h2>
+    <div class="firma-box" id="firma-vista"><span class="muted">Nessuna firma</span></div>
+    <label for="file-firma" class="btn" style="text-align:center;color:#fff">📷 Fotografa o scegli la firma</label>
+    <input id="file-firma" type="file" accept="image/*" style="display:none">
+    <p class="muted">Firma su un foglio bianco con penna scura e fotografala da vicino: lo sfondo viene tolto da solo.</p>
+    <details><summary>…oppure disegnala con il dito</summary>
+      <canvas id="pad"></canvas>
+      <div class="row"><button class="btn sec" id="b-pad-canc">Cancella</button><button class="btn" id="b-pad-ok">Usa questa firma</button></div>
+    </details>
+    <button class="btn sec" id="b-ruota" style="display:none">Ruota la firma ↻</button>
+    <button class="btn sec" id="b-firma-del" style="display:none">Elimina firma</button>
+  </div>
+  <button class="btn" id="b-salva-anag">Salva anagrafica</button>
+</section>
+
+<!-- MODULO -->
+<section id="s-modulo">
+  <div class="card">
+    <h2>Modulo in uso</h2>
+    <p id="info-modulo" class="muted">Nessun modulo caricato.</p>
+    <label for="file-m104" class="btn" style="text-align:center;color:#fff">📄 Carica il file del modulo (.m104)</label>
+    <input id="file-m104" type="file" style="display:none">
+    <p class="muted">Il file .m104 si prepara sul PC con l'app "Modulo 104" (pulsante "Prepara per il telefono"). Puoi riceverlo da WhatsApp, email o iCloud e aprirlo da qui con l'app File. Quando cambia il modulo, carica il nuovo file.</p>
+  </div>
+</section>
+
+<!-- IMPOSTAZIONI -->
+<section id="s-impost">
+  <div class="card">
+    <h2>Email</h2>
+    <label for="em-a">Destinatario</label><input id="em-a" type="email" autocomplete="off">
+    <label for="em-cc">Copia (CC)</label><input id="em-cc" type="email" autocomplete="off">
+    <label for="em-ogg">Oggetto</label><input id="em-ogg" type="text">
+    <label for="em-testo">Testo</label><textarea id="em-testo"></textarea>
+    <label for="nomefile">Nome del file PDF</label><input id="nomefile" type="text">
+    <p class="muted">Puoi usare: {grado_nome} {grado} {cognome} {nome} {reparto} {assistito} {mese} {anno} {mese_anno} {periodi} {giorni_numero} {data_compilazione}</p>
+    <button class="btn" id="b-salva-imp">Salva impostazioni</button>
+  </div>
+  <div class="card">
+    <h2>Installa sul telefono</h2>
+    <p class="muted"><b>iPhone (Safari):</b> tocca il pulsante Condividi ⬆️ e poi "Aggiungi alla schermata Home".<br><b>Android (Chrome):</b> menu ⋮ e poi "Installa app" o "Aggiungi a schermata Home".</p>
+    <p class="muted">Tutti i dati restano su questo telefono: niente viene inviato a server.</p>
+    <p class="muted" id="versione"></p>
+  </div>
+</section>
+</main>
+
+<nav>
+  <button data-s="s-compila" class="on"><b>📝</b>Compila</button>
+  <button data-s="s-anag"><b>👤</b>Anagrafica</button>
+  <button data-s="s-modulo"><b>📄</b>Modulo</button>
+  <button data-s="s-impost"><b>⚙️</b>Impostazioni</button>
+</nav>
+<div id="toast"></div>
+<script src="pdf-lib.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
