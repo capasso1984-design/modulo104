@@ -164,6 +164,17 @@ body.bloccata main{visibility:hidden}
 @media (prefers-color-scheme:dark){.a104{--acc:#6ea8ff}.a151{--acc:#b794f6}.atu{--acc:#34d399}.a-no{--acc:#f6c453}}
 .arc-modifica{align-self:flex-end;border:0;background:none;color:var(--pri);font:inherit;font-weight:800;font-size:.9rem;cursor:pointer;padding:.2rem 0}
 .arc-pills{display:flex;flex-wrap:wrap;gap:6px}.arc-pill{border:1px solid var(--line);background:rgba(var(--pri-rgb),.07);color:var(--pri);border-radius:99px;padding:.35rem .8rem;font:inherit;font-weight:700;font-size:.85rem;cursor:pointer}
+.arc-azioni3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:.15rem}
+.arc-az{display:flex;flex-direction:column;align-items:center;gap:5px;border:0;background:none;color:var(--txt);font:inherit;font-weight:700;font-size:.78rem;cursor:pointer;padding:.2rem 0}
+.arc-az__i{position:relative;overflow:hidden;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.15rem;line-height:1;
+  background:radial-gradient(circle at 34% 28%,color-mix(in srgb,currentColor 26%,white) 0%,color-mix(in srgb,currentColor 15%,white) 55%,color-mix(in srgb,currentColor 24%,white) 100%);
+  box-shadow:inset 0 2px 3px rgba(255,255,255,.85),inset 0 -3px 5px color-mix(in srgb,currentColor 20%,transparent),0 2px 7px color-mix(in srgb,currentColor 28%,transparent);transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
+.arc-az__i::before{content:"";position:absolute;top:13%;left:18%;width:40%;height:32%;background:radial-gradient(ellipse at 45% 40%,rgba(255,255,255,.92) 0%,rgba(255,255,255,.32) 45%,transparent 75%);border-radius:50%}
+.arc-az:active .arc-az__i{transform:scale(.94)}.az-vedi .arc-az__i{color:#3b82f6}.az-mod .arc-az__i{color:#f59e0b}.az-cond .arc-az__i{color:#6366f1}
+.arc-az__i svg{position:relative;z-index:2;width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.arc-card{background:color-mix(in srgb,var(--card) 82%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.vedi-img img{display:block;width:100%;border-radius:18px;box-shadow:0 6px 18px rgba(20,40,80,.12)}
+.vedi-azioni{display:grid;grid-template-columns:1fr 1fr;gap:8px}.vedi-azioni .btn{margin-top:0}
 .btn-chiudi{background:#1e6b33;margin-top:1rem}
 .btn-turni{margin-top:0;padding:.6rem}
 .cal-g.s151{background:#6d28d9;color:#fff;border-color:#6d28d9}.cal-g.s151.tu{background:#c2410c;border-color:#c2410c;color:#fff;transform:translateY(-2px)}
@@ -428,6 +439,17 @@ body.bloccata main{visibility:hidden}
   <button class="btn" id="b-arc-pdf">Esporta in PDF l'anno</button>
 </section>
 
+<!-- VISUALIZZA UN MESE -->
+<section id="s-vedi">
+  <button class="indietro" data-vai="s-archivio"><svg class="sic"><use href="#i-indietro"/></svg>Archivio</button>
+  <h1 class="shub__titolo" id="vedi-titolo">Mese</h1>
+  <div class="vedi-img" id="vedi-img"></div>
+  <div class="vedi-azioni">
+    <button class="btn sec" id="b-vedi-modifica">✏️ Modifica</button>
+    <button class="btn" id="b-vedi-condividi">↗ Condividi</button>
+  </div>
+</section>
+
 <!-- INVITO (solo amministratore) -->
 <section id="s-invito">
   <button class="indietro" data-vai="s-home"><svg class="sic"><use href="#i-indietro"/></svg>Menu</button>
@@ -599,8 +621,9 @@ body.bloccata main{visibility:hidden}
 <script src="pdf-lib.min.js"></script>
 <script src="word.js?v=2.4"></script>
 <script src="firma.js?v=2.7"></script>
-<script src="app.js?v=3.15"></script>
+<script src="app.js?v=3.16"></script>
 <script src="c151.js?v=1.0"></script>
+<script src="vedi.js?v=1.0"></script>
 <script src="prepara.js?v=3.0"></script>
 <script src="accesso.js?v=3.0"></script>
 </body>

@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.15";
+const VERSIONE = "3.16";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -914,7 +914,11 @@ function disegnaArchivio() {
     if (tu.length) righe += riga("atu", "T", "Turni di servizio", tu.map((d) => `${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${d}`).join(" · "), String(tu.length));
     if (!r) righe += `<small class="muted">Modulo non ancora creato.</small>`;
     carte.push(`<div class="arc-card"><div class="arc-card__testa"><b class="arc-card__mese">${nome}</b>${r ? `<span class="arc-card__data">creato il ${esc(r.creato)}</span><button class="arc-x" data-cancella="${arcAnno}-${pad2(i + 1)}" aria-label="Cancella ${nome} dall'archivio" title="Cancella">✕</button>` : ""}</div>
-      ${righe}<button class="arc-modifica" data-apri="${i + 1}">${r ? "Vedi e modifica nel calendario" : "Compila questo mese"} ›</button></div>`);
+      ${righe}<div class="arc-azioni3">
+        <button class="arc-az az-vedi" data-vedi="${i + 1}"><span class="arc-az__i"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>Visualizza</button>
+        <button class="arc-az az-mod" data-apri="${i + 1}"><span class="arc-az__i"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>${r ? "Modifica" : "Compila"}</button>
+        <button class="arc-az az-cond" data-condividi="${i + 1}"><span class="arc-az__i"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></span>Condividi</button>
+      </div></div>`);
   });
   $("arc-mesi").innerHTML = carte.join("") + (vuoti.length ? `<div class="arc-card arc-vuoti"><b class="arc-card__mese" style="font-size:1rem">Da compilare</b>
     <div class="arc-pills">${vuoti.map((i) => `<button class="arc-pill" data-apri="${i + 1}">${MESI[i].slice(0, 3)}</button>`).join("")}</div>
@@ -923,6 +927,8 @@ function disegnaArchivio() {
     if (!confirm("Cancellare questo mese dall'archivio? Il PDF già inviato non cambia.")) return;
     const ar = archivio(); delete (ar[pid] || {})[b.dataset.cancella]; mem.set("m104_archivio", ar); disegnaArchivio();
   }));
+  $("arc-mesi").querySelectorAll("[data-vedi]").forEach((b) => b.addEventListener("click", () => apriVedi(pid, arcAnno, +b.dataset.vedi)));
+  $("arc-mesi").querySelectorAll("[data-condividi]").forEach((b) => b.addEventListener("click", async () => { await preparaVedi(pid, arcAnno, +b.dataset.condividi); condividiVedi(); }));
   $("arc-tot").textContent = String(tot); $("arc-mesi-n").textContent = `${comp} / 12`;
   $("arc-mesi").querySelectorAll("[data-apri]").forEach((b) => b.addEventListener("click", () => apriMeseNelCalendario(pid, arcAnno, +b.dataset.apri)));
   const a5 = anag(), usa151 = ha151() || t151 || a5.g151_iniziali;
@@ -936,6 +942,41 @@ function disegnaArchivio() {
   }
 }
 $("arc-persona").addEventListener("change", disegnaArchivio);
+// ---- visualizza / condividi un mese
+let vediCorrente = null;   // { pid, anno, mese, blob, nome, titolo }
+async function preparaVedi(pid, anno, mese) {
+  const r = (archivio()[pid] || {})[`${anno}-${pad2(mese)}`] || null;
+  const p = persone().find((x) => x.id === pid) || { nome: (r && r.nome) || "" , parentela: "" };
+  const d = { anno, mese, chi: p.nome + (p.parentela ? ` (${p.parentela})` : ""), richiedente: fissi(p).grado_nome,
+    giorni: r && !r.solo151 ? r.giorni : [], g151: (r && r.g151) || [], turni: turniArchivio(r, anno, mese), orari: (r && r.orari) || [],
+    nessuno: !!(r && r.nessuno), motivo: (r && r.motivo) || "" };
+  const cv = M104vedi.disegna(d), blob = await M104vedi.blob(cv);
+  const titolo = `${MESI[mese - 1]} ${anno}`;
+  vediCorrente = { pid, anno, mese, blob, titolo, url: cv.toDataURL("image/png"),
+    nome: `Calendario ${titolo} - ${p.nome}`.replace(/[<>:"/\|?*]/g, "-") + ".png",
+    testo: `${titolo} · ${d.chi}` + (d.giorni.length ? `
+104: ${d.giorni.map((g) => pad2(g)).join(", ")}` : "") + (d.g151.length ? `
+151: ${d.g151.map((g) => pad2(g)).join(", ")}` : "") + (d.turni.length ? `
+Turni: ${d.turni.join(", ")}` : "") };
+  return vediCorrente;
+}
+async function apriVedi(pid, anno, mese) {
+  const v = await preparaVedi(pid, anno, mese);
+  $("vedi-titolo").textContent = v.titolo;
+  $("vedi-img").innerHTML = `<img alt="Calendario di ${esc(v.titolo)}" src="${v.url}">`;
+  vai("s-vedi");
+}
+async function condividiVedi() {
+  const v = vediCorrente; if (!v) return;
+  const file = new File([v.blob], v.nome, { type: "image/png" });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: v.titolo, text: v.testo }); return; } catch (e) { if (e.name === "AbortError") return; }
+  }
+  const a = document.createElement("a"); a.href = v.url; a.download = v.nome; document.body.append(a); a.click(); a.remove();
+  toast("Immagine del calendario salvata");
+}
+$("b-vedi-modifica").addEventListener("click", () => { const v = vediCorrente; if (v) apriMeseNelCalendario(v.pid, v.anno, v.mese); });
+$("b-vedi-condividi").addEventListener("click", condividiVedi);
 let apriPasso2 = false;
 function apriMeseNelCalendario(pid, anno, mese) {
   if (persone().find((p) => p.id === pid)) mem.set("m104_persona", pid);
