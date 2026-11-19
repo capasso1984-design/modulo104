@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "1.1";
+const VERSIONE = "1.2";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -50,12 +50,16 @@ function toast(msg, ms = 3500) {
 }
 
 // ---------------------------------------------------------------- navigazione
-document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => mostra(b.dataset.s)));
+// menu a schede (stile hub): ogni pagina ha un indirizzo #..., così il tasto "indietro" del telefono torna al menu
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-vai]"); if (b) { e.preventDefault(); vai(b.dataset.vai); } });
+function vai(id) { const h = id === "s-home" ? "" : "#" + id.slice(2); if (location.hash !== h) location.hash = h; else mostra(id); }
+window.addEventListener("hashchange", () => mostra(location.hash ? "s-" + location.hash.slice(1) : "s-home"));
 function mostra(id) {
+  if (!document.getElementById(id)) id = "s-home";
   document.querySelectorAll("section").forEach((s) => s.classList.toggle("on", s.id === id));
-  document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("on", b.dataset.s === id));
   window.scrollTo(0, 0);
-  if (id === "s-compila") aggiornaAvvisi();
+  if (id === "s-home") aggiornaAvvisi();
+  if ("s-" + location.hash.slice(1) !== id && !(id === "s-home" && !location.hash)) history.replaceState(null, "", id === "s-home" ? location.pathname : "#" + id.slice(2));
 }
 
 // ---------------------------------------------------------------- anagrafica
@@ -87,8 +91,7 @@ function anteprimaNome() {
 $("b-salva-anag").addEventListener("click", () => {
   const a = {};
   for (const [k] of ANAG) a[k] = $("an-" + k).value.trim();
-  if (mem.set("m104_anag", a)) toast("Anagrafica salvata ✔");
-  aggiornaAvvisi();
+  if (mem.set("m104_anag", a)) { toast("Anagrafica salvata ✔"); vai("s-home"); }
 });
 
 // ---------------------------------------------------------------- firma
@@ -191,7 +194,7 @@ $("file-m104").addEventListener("change", async (e) => {
     const j = JSON.parse(await f.text());
     if (j.formato !== "m104" || !j.basi || !j.campi) throw new Error("formato");
     await idbSet("pacchetto", j); pacchetto = j; infoModulo(); toast("Modulo caricato ✔");
-    aggiornaAvvisi();
+    aggiornaAvvisi(); vai("s-home");
   } catch (err) { toast("Questo non è un file .m104 valido"); }
   e.target.value = "";
 });
@@ -280,14 +283,24 @@ function spuntata(regola, v) {
     (regola === "se_nessuno" && !v._giorni && !v._orari);
 }
 function aggiornaAvvisi() {
-  const a = anag(), msg = [];
-  if (!pacchetto) msg.push('📄 Carica il file del modulo (.m104) nella scheda <b>Modulo</b>.');
-  if (!a.cognome) msg.push('👤 Inserisci i tuoi dati nella scheda <b>Anagrafica</b>.');
-  if (!mem.get("m104_firma", null)) msg.push('✍️ Aggiungi la tua firma nella scheda <b>Anagrafica</b>.');
+  const a = anag(), firma = mem.get("m104_firma", null), msg = [];
+  if (!pacchetto) msg.push("📄 Carica il <b>modulo da compilare</b> (file .m104).");
+  if (!a.cognome) msg.push("👤 Inserisci i tuoi dati in <b>Anagrafica e firma</b>.");
+  if (!firma) msg.push("✍️ Aggiungi la tua <b>firma</b> in Anagrafica e firma.");
   $("avvisi").style.display = msg.length ? "block" : "none";
-  $("avvisi").innerHTML = msg.map((m) => `<p style="margin:4px 0">${m}</p>`).join("");
+  $("avvisi").innerHTML = "<p><b>Prima di iniziare:</b></p>" + msg.map((m) => `<p>${m}</p>`).join("");
+  const gn = fissi().grado_nome;
+  $("desc-anag").textContent = gn ? `${gn}${firma ? " · firma salvata" : " · manca la firma"}` : "Grado, nome, reparto, assistito e firma";
+  const okA = !!(a.cognome && firma);
+  $("stato-anag").textContent = okA ? "OK" : "Da fare";
+  $("stato-anag").className = "shub__stato" + (okA ? "" : " shub__stato--no");
+  $("desc-modulo").textContent = pacchetto ? `${pacchetto.nome} · preparato il ${pacchetto.creato}` : "Il file .m104 preparato dal PC";
+  $("stato-modulo").textContent = pacchetto ? "OK" : "Da caricare";
+  $("stato-modulo").className = "shub__stato" + (pacchetto ? "" : " shub__stato--no");
   const st = mem.get("m104_storico", []);
-  $("storico").innerHTML = st.length ? st.slice(0, 12).map((s) => `<li>${esc(s.nome)}<br><span class="muted">${esc(s.quando)} · ${esc(s.periodi)}</span></li>`).join("") : '<li class="muted">Nessuno per ora</li>';
+  $("storico").innerHTML = st.length
+    ? st.slice(0, 12).map((s) => `<div class="shub__riga" style="cursor:default"><span class="shub__tondo"><svg class="sic"><use href="#i-elenco"/></svg></span><span class="shub__testo"><b>${esc(s.nome.replace(/\.pdf$/, ""))}</b><small>${esc(s.quando)} · ${esc(s.periodi)}</small></span></div>`).join("")
+    : '<div class="shub__riga" style="cursor:default"><span class="shub__testo"><small>Nessun modulo creato per ora</small></span></div>';
 }
 
 // caratteri non disponibili nel font standard del PDF
@@ -345,8 +358,8 @@ async function creaPdf(m) {
 }
 
 $("b-crea").addEventListener("click", async () => {
-  if (!pacchetto) { toast("Prima carica il file del modulo (scheda Modulo)"); mostra("s-modulo"); return; }
-  if (!anag().cognome) { toast("Prima compila l'anagrafica"); mostra("s-anag"); return; }
+  if (!pacchetto) { toast("Prima carica il modulo da compilare"); vai("s-modulo"); return; }
+  if (!anag().cognome) { toast("Prima compila l'anagrafica"); vai("s-anag"); return; }
   let m;
   try { m = leggiMese(); } catch (e) { toast(e.message); return; }
   if (!m.periodi.length && !m.orari.length && !confirm("Non hai inserito giorni né permessi orari. Creo il modulo con 'non richiede i permessi'?")) return;
@@ -400,7 +413,7 @@ $("b-gmail").addEventListener("click", () => {
 
 // ---------------------------------------------------------------- avvio
 costruisciAnag(); costruisciImpost(); costruisciCompila();
-caricaPacchetto().then(aggiornaAvvisi);
+caricaPacchetto().then(() => mostra(location.hash ? "s-" + location.hash.slice(1) : "s-home"));
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 window.M104 = { creaPdf, calcolaValori, leggiMese }; // per i test
 
@@ -411,12 +424,12 @@ const TESTO_INVITO = "Ti mando l'app Modulo 104: compila e invia il modulo mensi
 async function condividiApp(conModulo) {
   const testo = `${TESTO_INVITO}\n${LINK_APP}`;
   if (conModulo) {
-    if (!pacchetto) { toast("Prima carica il file del modulo nella scheda Modulo"); mostra("s-modulo"); return; }
+    if (!pacchetto) { toast("Prima carica il modulo da compilare"); vai("s-modulo"); return; }
     const nomeFile = `Modulo104 - ${String(pacchetto.nome || "modulo").replace(/[<>:"/\|?*]/g, "-")}.m104`;
     const file = new File([JSON.stringify(pacchetto)], nomeFile, { type: "application/octet-stream" });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: "Modulo 104", text: testo + "\n\nIn allegato il file del modulo: salvalo e caricalo nell'app, scheda Modulo." });
+        await navigator.share({ files: [file], title: "Modulo 104", text: testo + "\n\nIn allegato il file del modulo: salvalo e caricalo nell'app, alla voce «Modulo da compilare»." });
         return;
       } catch (e) { if (e.name === "AbortError") return; }
     }
@@ -464,7 +477,7 @@ function mostraInstalla() {
       <li>Tocca <b>"Installa app"</b> oppure <b>"Aggiungi a schermata Home"</b>.</li>
       <li>Conferma: l'icona compare nella schermata Home.</li></ol>`;
   }
-  h += '<p class="muted">Ti hanno mandato anche un file .m104? Salvalo (su iPhone in "File") e caricalo nella scheda <b>Modulo</b>.</p>';
+  h += '<p class="muted">Ti hanno mandato anche un file .m104? Salvalo (su iPhone in "File") e caricalo in <b>Modulo da compilare</b>.</p>';
   h += '<button class="btn sec" id="b-no-installa">Più tardi</button>';
   box.innerHTML = h;
   box.style.display = "block";

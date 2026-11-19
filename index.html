@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Modulo 104</title>
 <meta name="description" content="Compilazione del modulo di programmazione permessi L.104/92">
-<meta name="theme-color" content="#1f4e79">
+<meta name="theme-color" content="#eef2f8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Modulo 104">
@@ -13,67 +13,167 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="Modulo 104 – compila il modulo dal telefono">
 <meta property="og:description" content="App gratuita per compilare e inviare il modulo mensile dei permessi L.104/92. Tocca il link e aggiungila alla schermata Home.">
-<meta property="og:image" content="https://capasso1984-design.github.io/modulo104/anteprima.png">
+<meta property="og:image" content="https://capasso1984-design.github.io/modulo104/anteprima.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:url" content="https://capasso1984-design.github.io/modulo104/">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-192.png">
-<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest?v=2">
+<link rel="apple-touch-icon" href="icon-192.png?v=2">
+<link rel="icon" href="icon-192.png?v=2">
 <style>
-:root{--bg:#f3f5f8;--card:#fff;--txt:#1b1f24;--muted:#66707c;--pri:#1f4e79;--pri2:#2d6aa3;--ok:#1e7d3a;--err:#b3261e;--line:#d9dee5}
-@media (prefers-color-scheme:dark){:root{--bg:#121417;--card:#1c1f24;--txt:#e9ecef;--muted:#9aa4af;--pri:#5b9bd5;--pri2:#7fb2e0;--line:#30353c}}
+/* Stile "hub" come il menu della Cassa di Rebecca: grande pulsante principale, sezioni, righe con icona tonda */
+:root{--pri:#1d5fc4;--pri-rgb:29,95,196;--bg:#eef2f8;--card:rgba(255,255,255,.96);--txt:#1b2a41;--muted:#4d5e78;--ok:#28a745;--ok-rgb:40,167,69;--warn:#ffc107;--warn-rgb:255,193,7;--err:#dc3545;--line:rgba(29,95,196,.12)}
+@media (prefers-color-scheme:dark){:root{--pri:#6ea8ff;--pri-rgb:110,168,255;--bg:#10151d;--card:#18202b;--txt:#e7edf6;--muted:#9fb0c6;--line:rgba(110,168,255,.16)}}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-header{position:sticky;top:0;z-index:5;background:var(--pri);color:#fff;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;display:flex;align-items:center;gap:10px}
-header .tit{flex:1;min-width:0}
-header button{border:1px solid rgba(255,255,255,.6);background:transparent;color:#fff;border-radius:20px;padding:6px 12px;font-size:14px}
-.inst{border:2px solid var(--pri)}
-.inst ol{margin:6px 0 0;padding-left:20px}.inst li{margin:6px 0}
-.ico-share{display:inline-block;border:1px solid var(--line);border-radius:6px;padding:0 6px;background:var(--bg)}
-header h1{margin:0;font-size:18px}
-header small{opacity:.85}
-main{padding:12px 16px calc(90px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
-nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
-nav button{flex:1;border:0;background:none;color:var(--muted);padding:9px 2px 8px;font-size:12px}
-nav button b{display:block;font-size:20px;line-height:1.1}
-nav button.on{color:var(--pri)}
-section{display:none}section.on{display:block}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
-.card h2{font-size:16px;margin:0 0 10px}
-label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
-input,select,textarea{width:100%;font-size:16px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--txt)}
+html,body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+main{max-width:720px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 14px) 16px calc(40px + env(safe-area-inset-bottom))}
+section{display:none;flex-direction:column;gap:.9rem}section.on{display:flex}
+.sic{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+/* testa */
+.testa{display:flex;align-items:center;gap:.7rem}
+.testa img{width:44px;height:44px;border-radius:12px;box-shadow:0 4px 12px rgba(20,40,80,.15)}
+.testa .t{flex:1;min-width:0}
+.shub__titolo{margin:0;font-size:1.7rem;font-weight:800;color:var(--pri);line-height:1.1}
+.shub__sub{margin:.15rem 0 0;color:var(--muted);font-size:.92rem;line-height:1.35}
+.tondo-btn{width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(var(--pri-rgb),.28);background:var(--card);color:var(--pri);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+.indietro{display:inline-flex;align-items:center;gap:.35rem;font:inherit;font-weight:800;font-size:.95rem;color:var(--pri);background:none;border:0;padding:.3rem 0;cursor:pointer;align-self:flex-start}
+/* grande pulsante */
+.shub__grande{background:var(--pri);color:#fff;border:0;border-radius:20px;padding:1.2rem 1.1rem;display:flex;align-items:center;gap:.9rem;text-align:left;font:inherit;cursor:pointer;box-shadow:0 10px 22px rgba(20,40,80,.22);width:100%}
+.shub__grande:active{transform:translateY(1px)}
+.shub__grande .sic{width:34px;height:34px}
+.shub__grande-testo{display:flex;flex-direction:column;gap:.2rem;flex:1;min-width:0}
+.shub__grande-nome{font-size:1.15rem;font-weight:800}
+.shub__grande-desc{font-size:.82rem;opacity:.92;line-height:1.35}
+.shub__grande-piu{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.24);display:inline-flex;align-items:center;justify-content:center;flex:none}
+/* sezioni ed elenchi */
+.shub__sezione{margin:.5rem 0 -.3rem;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.shub__elenco{background:var(--card);border-radius:18px;box-shadow:0 6px 18px rgba(20,40,80,.07);overflow:hidden}
+.shub__riga{display:flex;align-items:center;gap:.85rem;padding:.85rem 1rem;min-height:58px;width:100%;font:inherit;text-align:left;border:0;background:transparent;color:var(--txt);cursor:pointer;text-decoration:none}
+.shub__elenco .shub__riga+.shub__riga{border-top:1px solid var(--line)}
+.shub__riga:active{background:rgba(var(--pri-rgb),.06)}
+.shub__tondo{width:40px;height:40px;border-radius:50%;background:rgba(var(--pri-rgb),.12);color:var(--pri);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.shub__testo{display:flex;flex-direction:column;gap:2px;flex-grow:1;min-width:0}
+.shub__testo b{font-size:1rem}
+.shub__testo small{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}
+.shub__stato{border-radius:99px;padding:.15rem .6rem;font-size:.72rem;font-weight:800;white-space:nowrap;background:rgba(var(--ok-rgb),.16);color:#1e7d3a}
+.shub__stato--no{background:rgba(var(--warn-rgb),.25);color:#7a5a00}
+.freccia{color:var(--muted);flex:none}
+/* schede dei moduli */
+.card{background:var(--card);border-radius:18px;box-shadow:0 6px 18px rgba(20,40,80,.07);padding:.95rem 1rem;display:flex;flex-direction:column;gap:.35rem}
+.card h2{font-size:1.02rem;margin:0 0 .2rem;font-weight:800}
+label{font-size:.75rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:.55rem}
+input,select,textarea{width:100%;font:inherit;font-size:16px;padding:.65rem .8rem;border:1.5px solid rgba(var(--pri-rgb),.25);border-radius:12px;background:var(--card);color:var(--txt);min-width:0}
 textarea{min-height:110px}
-.row{display:flex;gap:8px;align-items:flex-end}
-.row>*{flex:1}
-.row .lab{flex:0 0 auto;padding-bottom:12px;color:var(--muted);font-size:14px}
-.btn{display:block;width:100%;border:0;border-radius:10px;padding:14px;font-size:16px;font-weight:600;background:var(--pri);color:#fff;margin-top:10px}
-.btn.sec{background:transparent;color:var(--pri);border:1px solid var(--pri)}
-.btn:disabled{opacity:.45}
-.tot{font-weight:700;margin-top:8px}
-.muted{color:var(--muted);font-size:13px}
-.err{color:var(--err)}.ok{color:var(--ok)}
-.firma-box{background:#fff;border:1px dashed var(--line);border-radius:8px;min-height:90px;display:flex;align-items:center;justify-content:center;margin-top:8px}
+.row{display:flex;gap:8px;align-items:flex-end}.row>*{flex:1;min-width:0}
+.row .lab{flex:0 0 auto;padding-bottom:12px;color:var(--muted);font-size:.9rem;font-weight:700}
+.btn{display:flex;align-items:center;justify-content:center;gap:.5rem;width:100%;border:0;border-radius:14px;padding:.95rem;font:inherit;font-size:1rem;font-weight:800;background:var(--pri);color:#fff;margin-top:.5rem;cursor:pointer;text-align:center}
+.btn.sec{background:var(--card);color:var(--pri);border:1.5px solid rgba(var(--pri-rgb),.25)}
+.btn:disabled{opacity:.5}
+.tot{font-weight:800;margin-top:.5rem}
+.muted{color:var(--muted);font-size:.85rem;margin:.2rem 0}
+.err{color:var(--err)}
+.firma-box{background:#fff;border:1.5px dashed rgba(var(--pri-rgb),.3);border-radius:12px;min-height:90px;display:flex;align-items:center;justify-content:center;margin-top:.3rem}
 .firma-box img{max-width:90%;max-height:110px}
-#pad{width:100%;height:180px;background:#fff;border:1px solid var(--line);border-radius:8px;touch-action:none;display:block}
-details summary{cursor:pointer;font-weight:600;padding:4px 0}
+#pad{width:100%;height:180px;background:#fff;border:1.5px solid rgba(var(--pri-rgb),.25);border-radius:12px;touch-action:none;display:block;margin-top:.4rem}
+details summary{cursor:pointer;font-weight:800;padding:.2rem 0;color:var(--pri)}
 .og{display:grid;grid-template-columns:1fr 1.3fr 1.3fr;gap:6px;margin-top:6px}
-.badge{display:inline-block;background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:2px 10px;font-size:13px}
-#toast{position:fixed;left:16px;right:16px;bottom:calc(80px + env(safe-area-inset-bottom));background:#222;color:#fff;padding:12px 14px;border-radius:10px;display:none;z-index:9}
-ul.storico{list-style:none;padding:0;margin:0}ul.storico li{padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.inst{border:2px solid var(--pri)}
+.inst ol{margin:.3rem 0 0;padding-left:1.2rem}.inst li{margin:.35rem 0}
+.ico-share{display:inline-block;border:1px solid var(--line);border-radius:6px;padding:0 6px}
+.avviso{background:rgba(var(--warn-rgb),.2);border-radius:14px;padding:.7rem .9rem;font-size:.92rem;line-height:1.45}
+.avviso p{margin:.15rem 0}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));background:#1b2a41;color:#fff;padding:12px 14px;border-radius:12px;display:none;z-index:9;box-shadow:0 8px 20px rgba(0,0,0,.25)}
 </style>
 </head>
 <body>
-<header><div class="tit"><h1>Modulo 104</h1><small id="sottotitolo">Programmazione permessi L.104/92</small></div><button id="b-condividi-testa" aria-label="Condividi l'app">↗ Condividi</button></header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-penna" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+  <symbol id="i-persona" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h5"/></symbol>
+  <symbol id="i-busta" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></symbol>
+  <symbol id="i-condividi" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></symbol>
+  <symbol id="i-pacco" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
+  <symbol id="i-telefono" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="i-elenco" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></symbol>
+  <symbol id="i-freccia" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-indietro" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></symbol>
+  <symbol id="i-piu" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+</svg>
 <main>
 
-<!-- COMPILA -->
-<section id="s-compila" class="on">
+<!-- MENU (stile hub della Cassa) -->
+<section id="s-home" class="on">
+  <div class="testa">
+    <img src="icon-192.png?v=2" alt="">
+    <div class="t">
+      <h1 class="shub__titolo">Modulo 104</h1>
+      <p class="shub__sub" id="sottotitolo">Programmazione permessi L.104/92</p>
+    </div>
+    <button class="tondo-btn" id="b-condividi-testa" aria-label="Condividi l'app"><svg class="sic"><use href="#i-condividi"/></svg></button>
+  </div>
+
   <div class="card inst" id="installa" style="display:none"></div>
-  <div class="card" id="avvisi"></div>
+  <div class="avviso" id="avvisi" style="display:none"></div>
+
+  <button class="shub__grande" data-vai="s-compila">
+    <svg class="sic"><use href="#i-penna"/></svg>
+    <span class="shub__grande-testo">
+      <span class="shub__grande-nome">Compila il mese</span>
+      <span class="shub__grande-desc">Scegli mese e giorni: il PDF si crea da solo, con la firma, pronto da inviare</span>
+    </span>
+    <span class="shub__grande-piu"><svg class="sic"><use href="#i-piu"/></svg></span>
+  </button>
+
+  <h2 class="shub__sezione">Il tuo profilo</h2>
+  <div class="shub__elenco">
+    <button class="shub__riga" data-vai="s-anag">
+      <span class="shub__tondo"><svg class="sic"><use href="#i-persona"/></svg></span>
+      <span class="shub__testo"><b>Anagrafica e firma</b><small id="desc-anag">Grado, nome, reparto, assistito e firma</small></span>
+      <span class="shub__stato" id="stato-anag"></span>
+      <svg class="sic freccia"><use href="#i-freccia"/></svg>
+    </button>
+    <button class="shub__riga" data-vai="s-modulo">
+      <span class="shub__tondo"><svg class="sic"><use href="#i-file"/></svg></span>
+      <span class="shub__testo"><b>Modulo da compilare</b><small id="desc-modulo">Il file .m104 preparato dal PC</small></span>
+      <span class="shub__stato" id="stato-modulo"></span>
+      <svg class="sic freccia"><use href="#i-freccia"/></svg>
+    </button>
+    <button class="shub__riga" data-vai="s-impost">
+      <span class="shub__tondo"><svg class="sic"><use href="#i-busta"/></svg></span>
+      <span class="shub__testo"><b>Email e nome del file</b><small>Destinatario, oggetto e testo dell'email</small></span>
+      <svg class="sic freccia"><use href="#i-freccia"/></svg>
+    </button>
+  </div>
+
+  <h2 class="shub__sezione">Condividi</h2>
+  <div class="shub__elenco">
+    <button class="shub__riga" id="b-condividi">
+      <span class="shub__tondo"><svg class="sic"><use href="#i-condividi"/></svg></span>
+      <span class="shub__testo"><b>Condividi l'app</b><small>Manda il link a un collega: WhatsApp, Telegram, email, SMS…</small></span>
+      <svg class="sic freccia"><use href="#i-freccia"/></svg>
+    </button>
+    <button class="shub__riga" id="b-condividi-modulo">
+      <span class="shub__tondo"><svg class="sic"><use href="#i-pacco"/></svg></span>
+      <span class="shub__testo"><b>Condividi app + modulo</b><small>Il collega riceve anche il modulo pronto (senza i tuoi dati)</small></span>
+      <svg class="sic freccia"><use href="#i-freccia"/></svg>
+    </button>
+    <button class="shub__riga" data-vai="s-aiuto">
+      <span class="shub__tondo"><svg class="sic"><use href="#i-telefono"/></svg></span>
+      <span class="shub__testo"><b>Installa sul telefono</b><small>Come mettere l'icona nella schermata Home</small></span>
+      <svg class="sic freccia"><use href="#i-freccia"/></svg>
+    </button>
+  </div>
+
+  <h2 class="shub__sezione">Moduli creati</h2>
+  <div class="shub__elenco" id="storico"></div>
+</section>
+
+<!-- COMPILA -->
+<section id="s-compila">
+  <button class="indietro" data-vai="s-home"><svg class="sic"><use href="#i-indietro"/></svg>Menu</button>
+  <h1 class="shub__titolo">Compila il mese</h1>
   <div class="card">
-    <h2>Mese</h2>
     <div class="row">
       <div><label for="mese">Mese</label><select id="mese"></select></div>
       <div><label for="anno">Anno</label><input id="anno" type="number" inputmode="numeric"></div>
@@ -94,24 +194,25 @@ ul.storico{list-style:none;padding:0;margin:0}ul.storico li{padding:8px 0;border
     </details>
   </div>
   <div class="card">
-    <label for="motivo">Se questo mese non chiedi permessi, motivo (facoltativo)</label>
+    <label for="motivo" style="margin-top:0">Se questo mese non chiedi permessi, motivo (facoltativo)</label>
     <input id="motivo" type="text">
   </div>
   <button class="btn" id="b-crea">Crea PDF</button>
-  <div class="card" id="risultato" style="display:none;margin-top:12px">
+  <div class="card" id="risultato" style="display:none">
     <h2>PDF pronto ✔</h2>
     <p id="nomepdf" class="muted"></p>
     <button class="btn" id="b-invia">Invia (Gmail, WhatsApp…)</button>
     <button class="btn sec" id="b-apri">Apri / salva PDF</button>
     <button class="btn sec" id="b-oggetto">Copia l'oggetto dell'email</button>
     <button class="btn sec" id="b-gmail">Apri Gmail con oggetto e testo (senza allegato)</button>
-    <p class="muted">Con "Invia" scegli Gmail: il PDF è già allegato. L'oggetto viene copiato da solo, tienilo premuto nel campo Oggetto e scegli "Incolla".</p>
+    <p class="muted">Con "Invia" scegli Gmail: il PDF è già allegato. L'oggetto viene copiato da solo: tieni premuto nel campo Oggetto e scegli "Incolla".</p>
   </div>
-  <div class="card"><h2>Moduli creati</h2><ul class="storico" id="storico"></ul></div>
 </section>
 
 <!-- ANAGRAFICA -->
 <section id="s-anag">
+  <button class="indietro" data-vai="s-home"><svg class="sic"><use href="#i-indietro"/></svg>Menu</button>
+  <h1 class="shub__titolo">Anagrafica e firma</h1>
   <div class="card">
     <h2>I tuoi dati</h2>
     <p class="muted">Si inseriscono una volta sola e restano salvati solo su questo telefono.</p>
@@ -121,7 +222,7 @@ ul.storico{list-style:none;padding:0;margin:0}ul.storico li{padding:8px 0;border
   <div class="card">
     <h2>La tua firma</h2>
     <div class="firma-box" id="firma-vista"><span class="muted">Nessuna firma</span></div>
-    <label for="file-firma" class="btn" style="text-align:center;color:#fff">📷 Fotografa o scegli la firma</label>
+    <label for="file-firma" class="btn" style="text-transform:none;letter-spacing:0;color:#fff">📷 Fotografa o scegli la firma</label>
     <input id="file-firma" type="file" accept="image/*" style="display:none">
     <p class="muted">Firma su un foglio bianco con penna scura e fotografala da vicino: lo sfondo viene tolto da solo.</p>
     <details><summary>…oppure disegnala con il dito</summary>
@@ -136,51 +237,47 @@ ul.storico{list-style:none;padding:0;margin:0}ul.storico li{padding:8px 0;border
 
 <!-- MODULO -->
 <section id="s-modulo">
+  <button class="indietro" data-vai="s-home"><svg class="sic"><use href="#i-indietro"/></svg>Menu</button>
+  <h1 class="shub__titolo">Modulo da compilare</h1>
   <div class="card">
-    <h2>Modulo in uso</h2>
     <p id="info-modulo" class="muted">Nessun modulo caricato.</p>
-    <label for="file-m104" class="btn" style="text-align:center;color:#fff">📄 Carica il file del modulo (.m104)</label>
+    <label for="file-m104" class="btn" style="text-transform:none;letter-spacing:0;color:#fff">📄 Carica il file del modulo (.m104)</label>
     <input id="file-m104" type="file" style="display:none">
-    <p class="muted">Il file .m104 si prepara sul PC con l'app "Modulo 104" (pulsante "Prepara per il telefono"). Puoi riceverlo da WhatsApp, email o iCloud e aprirlo da qui con l'app File. Quando cambia il modulo, carica il nuovo file.</p>
+    <p class="muted">Il file .m104 si prepara sul PC con l'app "Modulo 104" (pulsante "Prepara per il telefono"), oppure te lo manda un collega. Salvalo (su iPhone in "File") e caricalo da qui. Quando cambia il modulo, carica il nuovo file.</p>
   </div>
 </section>
 
-<!-- IMPOSTAZIONI -->
+<!-- EMAIL E NOME FILE -->
 <section id="s-impost">
+  <button class="indietro" data-vai="s-home"><svg class="sic"><use href="#i-indietro"/></svg>Menu</button>
+  <h1 class="shub__titolo">Email e nome del file</h1>
   <div class="card">
-    <h2>Email</h2>
-    <label for="em-a">Destinatario</label><input id="em-a" type="email" autocomplete="off">
+    <label for="em-a" style="margin-top:0">Destinatario</label><input id="em-a" type="email" autocomplete="off">
     <label for="em-cc">Copia (CC)</label><input id="em-cc" type="email" autocomplete="off">
     <label for="em-ogg">Oggetto</label><input id="em-ogg" type="text">
     <label for="em-testo">Testo</label><textarea id="em-testo"></textarea>
     <label for="nomefile">Nome del file PDF</label><input id="nomefile" type="text">
     <p class="muted">Puoi usare: {grado_nome} {grado} {cognome} {nome} {reparto} {assistito} {mese} {anno} {mese_anno} {periodi} {giorni_numero} {data_compilazione}</p>
-    <button class="btn" id="b-salva-imp">Salva impostazioni</button>
+    <button class="btn" id="b-salva-imp">Salva</button>
   </div>
+</section>
+
+<!-- AIUTO INSTALLAZIONE -->
+<section id="s-aiuto">
+  <button class="indietro" data-vai="s-home"><svg class="sic"><use href="#i-indietro"/></svg>Menu</button>
+  <h1 class="shub__titolo">Installa sul telefono</h1>
   <div class="card">
-    <h2>Condividi l'app</h2>
-    <p class="muted">Manda l'app a un collega con WhatsApp, Telegram, email, SMS… Riceverà il link con l'icona e, aprendolo, la procedura per installarla.</p>
-    <button class="btn" id="b-condividi">↗ Condividi il link dell'app</button>
-    <button class="btn sec" id="b-condividi-modulo">↗ Condividi app + file del modulo (.m104)</button>
-    <p class="muted">Con la seconda opzione il collega riceve anche il modulo già pronto: non contiene i tuoi dati né la tua firma.</p>
-  </div>
-  <div class="card">
-    <h2>Installa sul telefono</h2>
-    <p class="muted"><b>iPhone (Safari):</b> tocca il pulsante Condividi ⬆️ e poi "Aggiungi alla schermata Home".<br><b>Android (Chrome):</b> menu ⋮ e poi "Installa app" o "Aggiungi a schermata Home".</p>
+    <h2>iPhone (Safari)</h2>
+    <p class="muted">Tocca <span class="ico-share">⬆️ Condividi</span>, poi <b>"Aggiungi alla schermata Home"</b> e <b>"Aggiungi"</b>. Se il link si è aperto dentro WhatsApp, prima scegli "Apri in Safari".</p>
+    <h2 style="margin-top:.6rem">Android (Chrome)</h2>
+    <p class="muted">Menu <b>⋮</b> in alto a destra, poi <b>"Installa app"</b> o <b>"Aggiungi a schermata Home"</b>.</p>
     <p class="muted">Tutti i dati restano su questo telefono: niente viene inviato a server.</p>
     <p class="muted" id="versione"></p>
   </div>
 </section>
 </main>
-
-<nav>
-  <button data-s="s-compila" class="on"><b>📝</b>Compila</button>
-  <button data-s="s-anag"><b>👤</b>Anagrafica</button>
-  <button data-s="s-modulo"><b>📄</b>Modulo</button>
-  <button data-s="s-impost"><b>⚙️</b>Impostazioni</button>
-</nav>
 <div id="toast"></div>
 <script src="pdf-lib.min.js"></script>
-<script src="app.js?v=1.1"></script>
+<script src="app.js?v=1.2"></script>
 </body>
 </html>
