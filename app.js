@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.4";
+const VERSIONE = "3.5";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -895,7 +895,6 @@ async function condividiApp(conModulo, link = LINK_APP, nota = "") {
 }
 // la condivisione passa dall'invito personale (solo amministratore)
 $("b-condividi").addEventListener("click", () => window.M104acc.apriInvito(false));
-$("b-condividi-modulo").addEventListener("click", () => window.M104acc.apriInvito(true));
 $("b-condividi-testa").addEventListener("click", () => window.M104acc.apriInvito(false));
 
 const installata = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
