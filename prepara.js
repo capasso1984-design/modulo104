@@ -93,7 +93,8 @@
   // righe "____" con la loro posizione: si lavora sulla riga intera, perché i PDF spezzano il testo a caso
   function trovaCampi(pagine) {
     const campi = [];
-    const RE = /_{3,}(?:[ \t]*\/[ \t]*_{2,}){0,2}(?:\s+(?:19|20)\d\d(?!\d))?|(?:^|[^a-zà-ù])anno\s+(?:19|20)\d\d(?!\d)/gi;
+    // righe "____", date (anche con l'anno già stampato: "__/__/2025"), "anno 2025" e qualsiasi anno recente stampato
+    const RE = /_{2,}[ \t]*\/[ \t]*_{1,}[ \t]*\/[ \t]*(?:(?:19|20)\d\d_*|_{2,})|_{3,}(?:\s+(?:19|20)\d\d(?!\d))?|(?:^|[^a-zà-ù])anno\s+(?:19|20)\d\d(?!\d)|(?:^|[^\d/.])20[2-9]\d(?![\d/])/gi;
     for (const p of pagine) {
       const ordinati = p.pezzi.slice().sort((a, b) => a.b - b.b || a.x - b.x);
       const righe = [];
@@ -137,6 +138,7 @@
   function indovinaCampi(campi) {
     let nDal = 0, nOg = 0;
     for (const c of campi) {
+      if (/^\d+$/.test(c.t)) { c.a = "var:anno"; continue; }   // anno stampato: si aggiorna sempre
       const b = (c.prima || c.sopra || "").replace(/_+/g, " ").trim().toLowerCase();
       const a = (c.dopo || "").replace(/_+/g, " ").trim().toLowerCase();
       const coda = b.slice(-25);

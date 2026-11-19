@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "1.8";
+const VERSIONE = "1.9";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -389,7 +389,7 @@ async function creaPdf(m) {
     // nei campi con barre (date "__/__/__") copre le barre sopra la riga; le lineette restano come sottolineatura
     if (c.t && /[^_\s]/.test(c.t)) {
       const anno = /\d/.test(c.t);   // c'era un anno stampato: lo copre tutto
-      pg.drawRectangle({ x: c.x + (anno ? -1 : 1), y: base - 0.4, width: Math.max(4, largCampo + (anno ? 3 : -1.5)), height: size * 1.0, color: rgb(1, 1, 1) });
+      pg.drawRectangle({ x: c.x + (anno ? -1 : 1), y: base - 0.4, width: Math.max(4, largCampo + (anno ? 1.5 : -1.5)), height: size * 1.0, color: rgb(1, 1, 1) });
     }
     pg.drawText(testo, { x: c.x + 3, y: base + 1, size: sz, font, color: nero });
   }
