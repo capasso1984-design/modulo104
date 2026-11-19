@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.18";
+const VERSIONE = "3.19";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -481,8 +481,8 @@ function modoCal(m) {
   cal.modo = m;
   $("cal-titolo").textContent = m === "turni" ? "I tuoi turni di servizio" : m === "151" ? "Giorni di congedo 151" : "Giorni di permesso 104";
   $("cal-istr").innerHTML = m === "turni" ? "Tocca i giorni in cui monti il servizio. <b>Facoltativo</b>: se non ti serve, vai avanti."
-    : m === "151" ? "Tocca i giorni di congedo 151 (viola). I giorni 104 restano in blu, i turni in verde."
-    : "Tocca i giorni che vuoi prendere (massimo 3 al mese). I tuoi turni sono quelli verdi in rilievo.";
+    : m === "151" ? "Tocca i giorni di congedo 151 (blu). I giorni 104 restano rossi, i turni verdi."
+    : "Tocca i giorni 104 che vuoi prendere (rossi, massimo 3 al mese). I tuoi turni sono quelli verdi.";
   $("sw-151").style.display = ha151() && !nonChiedo ? "" : "none";
   document.querySelectorAll(".solo-151").forEach((e) => (e.style.display = ha151() ? "" : "none"));
   for (const [id, v] of [["cal-m104", "104"], ["cal-m151", "151"]]) { $(id).classList.toggle("on", m === v); $(id).setAttribute("aria-checked", String(m === v)); }
