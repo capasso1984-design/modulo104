@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.8";
+const VERSIONE = "3.9";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -473,7 +473,7 @@ function salvaTurni(set) {
 function modoCal(m) {
   cal.modo = m;
   $("cal-titolo").textContent = m === "turni" ? "I tuoi turni di servizio" : "Giorni di permesso 104";
-  $("cal-istr").innerHTML = m === "turni" ? "Tocca i giorni in cui monti il servizio. <b>Facoltativo</b>: se non ti serve, vai avanti." : "Tocca i giorni che vuoi prendere (massimo 3 al mese). I tuoi turni sono in verde.";
+  $("cal-istr").innerHTML = m === "turni" ? "Tocca i giorni in cui monti il servizio. <b>Facoltativo</b>: se non ti serve, vai avanti." : "Tocca i giorni che vuoi prendere (massimo 3 al mese). I tuoi turni sono quelli in rilievo.";
   $("cal-err").hidden = true; $("cal-avv").hidden = true; disegnaCal();
 }
 // procedura guidata: 1 turni (facoltativo) -> 2 giorni 104 -> 3 PDF
