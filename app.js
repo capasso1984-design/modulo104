@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.14";
+const VERSIONE = "3.15";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -896,27 +896,29 @@ function disegnaArchivio() {
   $("arc-anni").innerHTML = [...anni].sort().map((y) => `<button class="pill${y === arcAnno ? " on" : ""}" data-anno="${y}">${y}</button>`).join("");
   $("arc-anni").querySelectorAll("[data-anno]").forEach((b) => b.addEventListener("click", () => { arcAnno = +b.dataset.anno; disegnaArchivio(); }));
   let tot = 0, comp = 0, t151 = 0;
-  $("arc-mesi").innerHTML = MESI.map((nome, i) => {
-    const r = dati[`${arcAnno}-${pad2(i + 1)}`];
-    let badge = '<span class="badge vuoto">Non compilato</span>', corpo = "";
-    if (r && r.solo151) { comp++; badge = ""; }
-    else if (r && r.nessuno) { comp++; badge = '<span class="badge no">Nessun permesso</span>'; corpo = `<small class="muted">Motivo: «${esc(r.motivo)}»</small>`; }
-    else if (r) {
-      comp++; tot += r.giorni.length;
-      badge = `<span class="badge${r.giorni.length === 3 ? " ok" : ""}">${r.giorni.length} / 3 giorni</span>`;
-      corpo = `<div class="chips">${r.giorni.map((d) => `<span class="chip">${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${pad2(d)}/${pad2(i + 1)}</span>`).join("")}${r.orari.map(([g, x, y]) => `<span class="chip">${pad2(g)}/${pad2(i + 1)} ${esc(x)}-${esc(y)}</span>`).join("")}</div>`;
+  const gg = (i, ds) => ds.map((d) => `${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${pad2(d)}`).join(" · ");
+  const riga = (cls, ico, titolo, testo, n) => `<div class="arc-riga ${cls}"><span class="arc-ico">${ico}</span><span class="arc-riga__c"><b class="arc-riga__t">${titolo}</b><span class="arc-riga__g">${testo}</span></span>${n ? `<span class="arc-n">${n}</span>` : ""}</div>`;
+  const vuoti = [], carte = [];
+  MESI.forEach((nome, i) => {
+    const r = dati[`${arcAnno}-${pad2(i + 1)}`], tu = turniArchivio(r, arcAnno, i + 1);
+    if (!r && !tu.length) { vuoti.push(i); return; }
+    let righe = "";
+    if (r) comp++;
+    if (r && r.nessuno) righe += riga("a-no", "—", "104: nessun permesso", `Motivo: «${esc(r.motivo)}»`, "");
+    else if (r && !r.solo151 && (r.giorni.length || r.orari.length)) {
+      tot += r.giorni.length;
+      const or = r.orari.map(([g, x, y]) => `${pad2(g)} ${esc(x)}-${esc(y)}`).join(" · ");
+      righe += riga("a104", "104", "Permessi 104", [gg(i, r.giorni), or].filter(Boolean).join(" · ") , `${r.giorni.length}/3`);
     }
-    if (r && r.g151 && r.g151.length) {
-      t151 += r.g151.length;
-      badge += `<span class="badge b151">151: ${r.g151.length} gg</span>`;
-      corpo += `<div class="chips">${r.g151.map((d) => `<span class="chip c151">151 · ${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${pad2(d)}/${pad2(i + 1)}</span>`).join("")}</div>`;
-    }
-    const tu = turniArchivio(r, arcAnno, i + 1);
-    if (tu.length) corpo += `<small class="arc-turni"><b>Turni:</b> ${tu.map((d) => `${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${d}`).join(" · ")}</small>`;
-    const cancella = r ? `<button class="shub__azione" data-cancella="${arcAnno}-${pad2(i + 1)}" aria-label="Cancella ${nome} dall'archivio" title="Cancella">✕</button>` : "";
-    const azioni = `<div class="arc-azioni"><button class="btn sec" data-apri="${i + 1}">📅 ${r ? "Vedi e modifica" : "Compila"} nel calendario</button></div>`;
-    return `<div class="arc-mese"><div class="arc-testa"><b>${nome}</b><span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">${badge}${cancella}</span></div>${corpo}${r ? `<small class="muted">Modulo creato il ${esc(r.creato)}</small>` : ""}${azioni}</div>`;
-  }).join("");
+    if (r && r.g151 && r.g151.length) { t151 += r.g151.length; righe += riga("a151", "151", "Congedo 151", gg(i, r.g151), `${r.g151.length} gg`); }
+    if (tu.length) righe += riga("atu", "T", "Turni di servizio", tu.map((d) => `${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${d}`).join(" · "), String(tu.length));
+    if (!r) righe += `<small class="muted">Modulo non ancora creato.</small>`;
+    carte.push(`<div class="arc-card"><div class="arc-card__testa"><b class="arc-card__mese">${nome}</b>${r ? `<span class="arc-card__data">creato il ${esc(r.creato)}</span><button class="arc-x" data-cancella="${arcAnno}-${pad2(i + 1)}" aria-label="Cancella ${nome} dall'archivio" title="Cancella">✕</button>` : ""}</div>
+      ${righe}<button class="arc-modifica" data-apri="${i + 1}">${r ? "Vedi e modifica nel calendario" : "Compila questo mese"} ›</button></div>`);
+  });
+  $("arc-mesi").innerHTML = carte.join("") + (vuoti.length ? `<div class="arc-card arc-vuoti"><b class="arc-card__mese" style="font-size:1rem">Da compilare</b>
+    <div class="arc-pills">${vuoti.map((i) => `<button class="arc-pill" data-apri="${i + 1}">${MESI[i].slice(0, 3)}</button>`).join("")}</div>
+    <small class="muted">Tocca un mese per compilarlo.</small></div>` : "");
   $("arc-mesi").querySelectorAll("[data-cancella]").forEach((b) => b.addEventListener("click", () => {
     if (!confirm("Cancellare questo mese dall'archivio? Il PDF già inviato non cambia.")) return;
     const ar = archivio(); delete (ar[pid] || {})[b.dataset.cancella]; mem.set("m104_archivio", ar); disegnaArchivio();
