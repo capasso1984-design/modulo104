@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.21";
+const VERSIONE = "3.22";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -450,7 +450,9 @@ function disegnaCal() {
   const turni = turniMese(), cur = personaCorrente(), altri = altri104(cal.anno, cal.mese, cur && cur.id);
   g.classList.toggle("turni-on", cal.modo === "turni");
   const tl = [...turni].sort((x, y) => x - y);
-  $("b-avanti").textContent = tl.length ? `Avanti: scegli i giorni 104 →` : "Nessun turno da segnare, vai avanti →";
+  const cosa = ha151() ? "104 e 151" : "i giorni 104";
+  $("ps2").textContent = ha151() ? "2 · 104 e 151" : "2 · Giorni 104";
+  $("b-avanti").textContent = tl.length ? `Avanti: scegli ${cosa} →` : "Nessun turno da segnare, vai avanti →";
   $("cal-turni").innerHTML = tl.length ? `<b>I tuoi turni:</b> ${tl.map((d) => `${NOMI_G[new Date(cal.anno, cal.mese - 1, d).getDay()].slice(0, 3)} ${d}`).join(" · ")}` : "";
   for (let i = 0; i < vuoti; i++) { const s = document.createElement("span"); s.className = "cal-g vuoto"; g.append(s); }
   for (let d = 1; d <= nGiorni; d++) {

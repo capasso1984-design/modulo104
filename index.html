@@ -146,7 +146,11 @@ body.bloccata main{visibility:hidden}
 .cal-g.tu.we:not(.sel),.cal-g.tu.fe:not(.sel){color:#9b1c14}.cal-g.tu.bloc{opacity:1}
 .cal-g{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05}.cal-g.sel.t1{--om1:rgba(239,68,68,.22);--om2:rgba(239,68,68,.32);background:linear-gradient(165deg,#fecaca 0%,#fca5a5 50%,#f87171 100%);color:#7f1d1d}
 .cal-g.sel.t2{--om1:rgba(225,29,72,.22);--om2:rgba(225,29,72,.32);background:linear-gradient(165deg,#fda4af 0%,#fb7185 50%,#e11d48 100%)}
-.cal-et.lungo{font-size:.5rem;letter-spacing:-.02em}.cal-g.altro{cursor:not-allowed;filter:saturate(.85)}
+.cal-et.lungo{font-size:.5rem;letter-spacing:-.02em}@media (prefers-color-scheme:dark){
+  .cal-g.we,.cal-g.fe{background:#2a1f24;color:#ff8a80;border-color:rgba(255,138,128,.18)}.cal-g.fe{border-color:rgba(255,138,128,.45)}
+  .lg-we,.lg-fe{background:#2a1f24;border-color:rgba(255,138,128,.45)}
+}
+.cal-g.altro{cursor:not-allowed;filter:saturate(.85)}
 .cal-et{white-space:nowrap;overflow:hidden;max-width:100%;font-size:.58rem;font-weight:800;letter-spacing:.02em;opacity:.9;margin-top:1px}
 .cal-g.sel.tu,.cal-g.s151.tu{box-shadow:0 0 0 3px #10b981,0 7px 16px var(--om2),inset 0 2px 2px rgba(255,255,255,.45),inset 0 -3px 6px rgba(0,0,0,.16)}
 #s-compila.passo1 .solo-p2,#s-compila.passo2 .solo-p1{display:none!important}
@@ -629,7 +633,7 @@ body.bloccata main{visibility:hidden}
 <script src="pdf-lib.min.js"></script>
 <script src="word.js?v=2.4"></script>
 <script src="firma.js?v=2.7"></script>
-<script src="app.js?v=3.21"></script>
+<script src="app.js?v=3.22"></script>
 <script src="c151.js?v=1.0"></script>
 <script src="vedi.js?v=1.2"></script>
 <script src="prepara.js?v=3.0"></script>
