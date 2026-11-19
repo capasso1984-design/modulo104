@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.3";
+const VERSIONE = "3.4";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -234,6 +234,23 @@ async function caricaPacchetto() {
   if (!moduli[moduli.uso]) moduli.uso = moduli.master ? "master" : moduli.tuo ? "tuo" : null;
   pacchetto = moduli.uso ? moduli[moduli.uso] : null;
   infoModulo();
+  masterDalSito();
+}
+// il modulo master ufficiale è pubblicato sul sito: si carica e si aggiorna da solo
+async function masterDalSito() {
+  try {
+    const r = await fetch("modulo-master.m104?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) return;
+    const j = await r.json();
+    if (j.formato !== "m104" || !j.basi || !j.campi) return;
+    const M = moduli.master;
+    if (M && M.nome === j.nome && M.creato === j.creato) return;      // già questo
+    if (M && !M.dalSito) return;                                       // master messo a mano: non lo tocco
+    j.dalSito = true;
+    j.caricato = new Date().toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" });
+    await salvaModulo("master", j, !moduli.uso || moduli.uso === "master");
+    toast(M ? "Modulo master aggiornato ✔" : "Modulo L.104 già pronto ✔");
+  } catch (e) { /* offline: resta quello salvato */ }
 }
 function infoModulo() {
   const M = moduli.master, T = moduli.tuo;
