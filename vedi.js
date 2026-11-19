@@ -3,7 +3,7 @@
 "use strict";
 (function () {
   const C = { pri: "#1d5fc4", txt: "#1b2a41", muted: "#4d5e78", line: "#d3ddee", cella: "#f3f6fc", rosa: "#f9e3e2", rosso: "#9b1c14",
-    verde: "#d9f2e8", verdeB: "#0f8a6c", verdeT: "#0b5e4a", viola: "#6d28d9", arancio: "#c2410c" };
+    verde: "#d9f2e8", verdeB: "#0f8a6c", verdeT: "#0b5e4a", rosso104: "#dc2626", blu151: "#2563eb", anello: "#10b981", grigio: "#eef0f4" };
   const SETT = ["LUN", "MAR", "MER", "GIO", "VEN", "SAB", "DOM"];
 
   function tondo(x, ctx, a, b, w, h, r) {
@@ -53,17 +53,19 @@
       const wd = new Date(d.anno, d.mese - 1, g).getDay(), we = wd === 0 || wd === 6, fe = fest[`${d.mese}-${g}`];
       const a104 = sel.has(g), a151 = s5.has(g), t = tu.has(g);
       let bg = C.cella, fg = C.txt, et = "";
-      if ((a104 || a151) && (t || we || fe)) { bg = C.arancio; fg = "#fff"; }
-      else if (a104) { bg = C.pri; fg = "#fff"; }
-      else if (a151) { bg = C.viola; fg = "#fff"; }
+      if (a104) { bg = C.rosso104; fg = "#fff"; }
+      else if (a151) { bg = C.blu151; fg = "#fff"; }
       else if (t) { bg = C.verde; fg = we || fe ? C.rosso : C.verdeT; }
-      else if (we || fe) { bg = C.rosa; fg = C.rosso; }
+      else if (we || fe) { bg = C.grigio; fg = "#b42318"; }
       et = a104 ? "104" : a151 ? "151" : t ? "turno" : "";
-      if (t) { ctx.shadowColor = "rgba(15,90,70,.28)"; ctx.shadowBlur = 16; ctx.shadowOffsetY = 6; }
-      ctx.fillStyle = bg; tondo(0, ctx, x, yy - (t ? 4 : 0), w, ch, 20); ctx.fill(); ctx.shadowColor = "transparent";
-      if (t && !(a104 || a151)) { ctx.strokeStyle = C.verdeB; ctx.lineWidth = 2.5; ctx.stroke(); }
-      ctx.fillStyle = fg; ctx.font = font(800, 38); ctx.fillText(String(g), x + w / 2, yy + (et ? 52 : 68) - (t ? 4 : 0));
-      if (et) { ctx.font = font(800, 21); ctx.fillText(et, x + w / 2, yy + 88 - (t ? 4 : 0)); }
+      const su = t || a104 || a151;   // turni, 104 e 151 sono "in rilievo"
+      if (su) { ctx.shadowColor = a104 ? "rgba(185,28,28,.35)" : a151 ? "rgba(29,78,216,.35)" : "rgba(15,90,70,.28)"; ctx.shadowBlur = 16; ctx.shadowOffsetY = 6; }
+      ctx.fillStyle = bg; tondo(0, ctx, x, yy - (su ? 4 : 0), w, ch, 20); ctx.fill(); ctx.shadowColor = "transparent";
+      if (su) { const lu = ctx.createLinearGradient(0, yy - 4, 0, yy + ch / 2); lu.addColorStop(0, "rgba(255,255,255,.35)"); lu.addColorStop(1, "rgba(255,255,255,0)"); ctx.fillStyle = lu; tondo(0, ctx, x, yy - 4, w, ch / 2, 20); ctx.fill(); }
+      if (t && !(a104 || a151)) { ctx.strokeStyle = C.verdeB; ctx.lineWidth = 2.5; tondo(0, ctx, x, yy - 4, w, ch, 20); ctx.stroke(); }
+      if (t && (a104 || a151)) { ctx.strokeStyle = C.anello; ctx.lineWidth = 6; tondo(0, ctx, x - 2, yy - 6, w + 4, ch + 4, 22); ctx.stroke(); }
+      ctx.fillStyle = fg; ctx.font = font(800, 38); ctx.fillText(String(g), x + w / 2, yy + (et ? 52 : 68) - (su ? 4 : 0));
+      if (et) { ctx.font = font(800, 21); ctx.fillText(et, x + w / 2, yy + 88 - (su ? 4 : 0)); }
     }
     ctx.textAlign = "left";
     y = 204 + altCard + 30;
@@ -71,8 +73,8 @@
     const dd = (gs) => [...gs].sort((a, b) => a - b).map((g) => `${BREVI_G[new Date(d.anno, d.mese - 1, g).getDay()]} ${pad2(g)}`).join(" · ");
     const voci = [];
     if (d.nessuno) voci.push(["#b7791f", "104", "Nessun permesso 104", d.motivo ? `«${d.motivo}»` : "", ""]);
-    else if (sel.size || (d.orari || []).length) voci.push(["#2563eb", "104", "Permessi 104", [dd(sel), (d.orari || []).map(([g, a, b]) => `${pad2(g)} ${a}-${b}`).join(" · ")].filter(Boolean).join(" · "), `${sel.size}/3`]);
-    if (s5.size) voci.push(["#7c3aed", "151", "Congedo 151", dd(s5), `${s5.size} gg`]);
+    else if (sel.size || (d.orari || []).length) voci.push(["#dc2626", "104", "Permessi 104", [dd(sel), (d.orari || []).map(([g, a, b]) => `${pad2(g)} ${a}-${b}`).join(" · ")].filter(Boolean).join(" · "), `${sel.size}/3`]);
+    if (s5.size) voci.push(["#2563eb", "151", "Congedo 151", dd(s5), `${s5.size} gg`]);
     if (tu.size) voci.push(["#0f8a6c", "T", "Turni di servizio", dd(tu), String(tu.size)]);
     if (!voci.length) voci.push(["#4d5e78", "—", "Nessun giorno segnato", "", ""]);
     for (const [acc, ico, tit, testo, n] of voci) {
@@ -90,7 +92,7 @@
     }
     // legenda
     y += 6; ctx.font = font(600, 22); let lx = 40;
-    for (const [c, t, bordo] of [[C.pri, "104"], [C.viola, "151"], [C.verde, "Turno", C.verdeB], [C.rosa, "Festivo / fine settimana"], [C.arancio, "Giorno su turno o festivo"]]) {
+    for (const [c, t, bordo] of [[C.rosso104, "104"], [C.blu151, "151"], [C.verde, "Turno", C.verdeB], [C.grigio, "Festivo / fine settimana", "#e3b0ab"], ["#fff", "104 o 151 su un turno", C.anello]]) {
       ctx.fillStyle = c; tondo(0, ctx, lx, y, 26, 26, 7); ctx.fill(); if (bordo) { ctx.strokeStyle = bordo; ctx.lineWidth = 2; ctx.stroke(); }
       ctx.fillStyle = C.muted; ctx.fillText(t, lx + 34, y + 21); lx += 34 + ctx.measureText(t).width + 26;
       if (lx > W - 260) { lx = 40; y += 40; }

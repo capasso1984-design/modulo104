@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.17";
+const VERSIONE = "3.18";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -614,7 +614,7 @@ function totale() {
   const p = periodiDa(cal.sel), mm = pad2(cal.mese);
   const p5 = ha151() ? periodiDa(cal.sel151) : [], max5 = ha151() ? M151.attuale().righe : 0;
   $("cal-periodi").innerHTML = (p.length ? "<b>Nel modulo 104:</b> " + p.map(([a, b]) => `dal ${pad2(a)}/${mm} al ${pad2(b)}/${mm}`).join(" · ") : "")
-    + (p5.length ? `${p.length ? "<br>" : ""}<b style="color:#5b21b6">Nel modulo 151 (${cal.sel151.size} ${cal.sel151.size === 1 ? "giorno" : "giorni"}):</b> ` + p5.map(([a, b]) => `dal ${pad2(a)}/${mm} al ${pad2(b)}/${mm}`).join(" · ") : "");
+    + (p5.length ? `${p.length ? "<br>" : ""}<b style="color:#1e40af">Nel modulo 151 (${cal.sel151.size} ${cal.sel151.size === 1 ? "giorno" : "giorni"}):</b> ` + p5.map(([a, b]) => `dal ${pad2(a)}/${mm} al ${pad2(b)}/${mm}`).join(" · ") : "");
   if (p5.length > max5 && cal.modo !== "turni") { $("cal-err").hidden = false; $("cal-err").textContent = `Il tuo modulo 151 ha ${max5} righe: hai ${p5.length} periodi. Unisci qualche giorno o togline.`; }
   $("b-crea").disabled = (!nonChiedo && n > 3) || p5.length > max5;
 }
@@ -759,7 +759,7 @@ function apriConferma(m, persona) {
   if (!fa104) { h = ""; $("cf-titolo").textContent = "Solo congedo 151"; }
   if (m.g151.length) {
     const gia = M151.giaFruiti(m.mese, m.anno), vuoto = !!anag().g151_vuoto;
-    h += `<p style="margin-top:.6rem"><b style="color:#5b21b6">Congedo 151: ${m.g151.length} ${m.g151.length === 1 ? "giorno" : "giorni"}</b></p><div class="cf-lista">` + m.g151.map((d) => {
+    h += `<p style="margin-top:.6rem"><b style="color:#1e40af">Congedo 151: ${m.g151.length} ${m.g151.length === 1 ? "giorno" : "giorni"}</b></p><div class="cf-lista">` + m.g151.map((d) => {
       const wd = new Date(m.anno, m.mese - 1, d).getDay(), avv = turniC.has(d) ? " (turno di servizio)" : "";
       return `<div><b class="${avv ? "avv" : ""}"><span style="text-transform:capitalize">${NOMI_G[wd]}</span>${avv}</b><span>${pad2(d)}/${mm}/${m.anno}</span></div>`;
     }).join("") + `</div><p class="muted">Nel modulo 151: già fruiti ${vuoto ? "<b>lasciato vuoto</b>" : "<b>" + gia + "</b> giorni"} · ${periodiDa(m.g151).map(([a, b]) => `dal ${pad2(a)}/${mm} al ${pad2(b)}/${mm}`).join(" · ")}</p>`;
@@ -937,7 +937,7 @@ function disegnaArchivio() {
   $("arc-151").style.display = usa151 ? "" : "none";
   if (usa151) {
     const totF = M151.totaleFruito(), resta = Math.max(0, M151.MAX_GIORNI - totF);
-    $("arc-151").innerHTML = `<h2 style="margin:0;color:#5b21b6">Congedo 151</h2>
+    $("arc-151").innerHTML = `<h2 style="margin:0;color:#1e40af">Congedo 151</h2>
       <p style="margin:.2rem 0"><b>${t151}</b> giorni nel ${arcAnno} · totale fruito <b>${totF}</b> su ${M151.MAX_GIORNI} · restano <b>${resta}</b></p>
       <div class="c151-barra"><i style="width:${Math.min(100, (totF / M151.MAX_GIORNI) * 100).toFixed(1)}%"></i></div>
       <small class="muted">Il totale comprende i ${parseInt(a5.g151_iniziali, 10) || 0} giorni già fruiti prima dell'app (Anagrafica).</small>`;
