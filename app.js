@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "1.2";
+const VERSIONE = "1.3";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -220,38 +220,44 @@ function costruisciCompila() {
   $("datacomp").value = `${oggi.getFullYear()}-${pad2(oggi.getMonth() + 1)}-${pad2(oggi.getDate())}`;
   let h = "";
   for (let i = 1; i <= N_PERIODI; i++)
-    h += `<div class="row"><span class="lab">${i}) dal</span><input id="dal${i}" type="number" inputmode="numeric" min="1" max="31"><span class="lab">al</span><input id="al${i}" type="number" inputmode="numeric" min="1" max="31"></div>`;
+    h += `<div class="periodo"><span class="lab">${i})</span><label class="mini">dal<input id="dal${i}" type="date"></label><label class="mini">al<input id="al${i}" type="date"></label></div>`;
   $("periodi").innerHTML = h;
   h = "";
   for (let i = 1; i <= N_ORARI; i++)
-    h += `<div class="og"><input id="og${i}g" type="number" inputmode="numeric" min="1" max="31" placeholder="giorno"><input id="og${i}d" type="time"><input id="og${i}a" type="time"></div>`;
+    h += `<div class="og"><input id="og${i}g" type="date" aria-label="Giorno permesso orario ${i}"><input id="og${i}d" type="time" aria-label="Dalle"><input id="og${i}a" type="time" aria-label="Alle"></div>`;
   $("orari").innerHTML = h;
-  document.querySelectorAll("#s-compila input, #s-compila select").forEach((el) => el.addEventListener("input", totale));
+  // quando scegli "dal", il calendario di "al" parte dallo stesso giorno
+  for (let i = 1; i <= N_PERIODI; i++) $("dal" + i).addEventListener("change", () => { if (!$("al" + i).value) $("al" + i).min = $("dal" + i).value; });
+  document.querySelectorAll("#s-compila input, #s-compila select").forEach((el) => { el.addEventListener("input", totale); el.addEventListener("change", totale); });
   totale();
 }
+// legge una data "aaaa-mm-gg" del calendario
+function dataDa(s) { const [y, m, d] = s.split("-").map(Number); return { y, m, d }; }
 function leggiMese() {
-  const mese = +$("mese").value, anno = +$("anno").value;
-  if (!anno || anno < 2000) throw new Error("Anno non valido");
-  const giorniMese = new Date(anno, mese, 0).getDate();
-  const chk = (g, cosa) => { if (!(g >= 1 && g <= giorniMese)) throw new Error(`${cosa}: il giorno ${g} non esiste in ${MESI[mese - 1]}`); };
-  const periodi = [], orari = [];
+  const periodi = [], orari = [], date = [];
   for (let i = 1; i <= N_PERIODI; i++) {
-    const a = $("dal" + i).value.trim(), b = $("al" + i).value.trim();
+    const a = $("dal" + i).value, b = $("al" + i).value;
     if (!a && !b) continue;
-    if (!a) throw new Error(`Periodo ${i}: manca il giorno "dal"`);
-    const d1 = +a, d2 = b ? +b : d1;
-    chk(d1, `Periodo ${i}`); chk(d2, `Periodo ${i}`);
-    if (d2 < d1) throw new Error(`Periodo ${i}: "al" è prima di "dal"`);
-    periodi.push([d1, d2]);
+    if (!a) throw new Error(`Periodo ${i}: manca la data "dal"`);
+    const d1 = dataDa(a), d2 = dataDa(b || a);
+    if (b && b < a) throw new Error(`Periodo ${i}: "al" è prima di "dal"`);
+    periodi.push([d1, d2]); date.push(d1, d2);
   }
   for (let i = 1; i <= N_ORARI; i++) {
-    const g = $(`og${i}g`).value.trim(); if (!g) continue;
-    chk(+g, `Permesso orario ${i}`);
-    orari.push([+g, $(`og${i}d`).value, $(`og${i}a`).value]);
+    const g = $(`og${i}g`).value; if (!g) continue;
+    const d = dataDa(g); orari.push([d, $(`og${i}d`).value, $(`og${i}a`).value]); date.push(d);
   }
+  // il mese di riferimento si ricava dalle date; se non ci sono date si usa quello scelto a mano
+  let mese = +$("mese").value, anno = +$("anno").value, daDate = false;
+  if (date.length) {
+    const mesi = new Set(date.map((d) => d.y * 100 + d.m));
+    if (mesi.size > 1) throw new Error("Le date sono in mesi diversi: il modulo è mensile, fai un modulo per ogni mese");
+    mese = date[0].m; anno = date[0].y; daDate = true;
+  }
+  if (!anno || anno < 2000) throw new Error("Anno non valido");
   const dc = $("datacomp").value;
   const data = dc ? dc.split("-").reverse().join("/") : fmt(new Date());
-  return { mese, anno, periodi, orari, data, motivo: $("motivo").value.trim() };
+  return { mese, anno, daDate, periodi: periodi.map(([a, b]) => [a.d, b.d]), orari: orari.map(([d, h1, h2]) => [d.d, h1, h2]), data, motivo: $("motivo").value.trim() };
 }
 function calcolaValori(m) {
   const v = { mese: MESI[m.mese - 1], anno: String(m.anno), mese_anno: `${MESI[m.mese - 1]} ${m.anno}`, data_compilazione: m.data, motivo: m.motivo };
@@ -272,10 +278,12 @@ function calcolaValori(m) {
 }
 function totale() {
   try {
-    const v = calcolaValori(leggiMese());
+    const m = leggiMese(), v = calcolaValori(m);
+    $("rif-mese").innerHTML = m.daDate ? `Mese di riferimento: <b>${v.mese_anno}</b> <span class="muted">(dalle date)</span>` : "Nessuna data: scegli qui sotto il mese di riferimento";
+    $("scelta-mese").style.display = m.daDate ? "none" : "flex";
     $("totale").className = "tot";
     $("totale").textContent = `Totale giorni: ${v._giorni}` + (v._giorni ? ` (${v.giorni_lettere})` : "") + (v._orari ? ` · permessi orari: ${v._orari}` : "");
-  } catch (e) { $("totale").className = "tot err"; $("totale").textContent = e.message; }
+  } catch (e) { $("totale").className = "tot err"; $("totale").textContent = e.message; $("rif-mese").textContent = ""; }
 }
 function riempi(tpl, dati) { return String(tpl || "").replace(/\{(\w+)\}/g, (m, k) => (dati[k] !== undefined ? dati[k] : m)); }
 function spuntata(regola, v) {
@@ -294,7 +302,7 @@ function aggiornaAvvisi() {
   const okA = !!(a.cognome && firma);
   $("stato-anag").textContent = okA ? "OK" : "Da fare";
   $("stato-anag").className = "shub__stato" + (okA ? "" : " shub__stato--no");
-  $("desc-modulo").textContent = pacchetto ? `${pacchetto.nome} · preparato il ${pacchetto.creato}` : "Il file .m104 preparato dal PC";
+  $("desc-modulo").textContent = pacchetto ? `${pacchetto.nome} · preparato il ${pacchetto.creato}` : "Dal PC (.m104) o da un PDF del modulo";
   $("stato-modulo").textContent = pacchetto ? "OK" : "Da caricare";
   $("stato-modulo").className = "shub__stato" + (pacchetto ? "" : " shub__stato--no");
   const st = mem.get("m104_storico", []);
@@ -315,7 +323,7 @@ async function creaPdf(m) {
   const { PDFDocument, StandardFonts, rgb } = PDFLib;
   const v = calcolaValori(m), f = fissi();
   const scen = v._giorni && v._orari ? "entrambi" : v._giorni ? "giorni" : v._orari ? "orari" : "nessuno";
-  const doc = await PDFDocument.load(b64bytes(pacchetto.basi[scen]));
+  const doc = await PDFDocument.load(b64bytes(pacchetto.basi[scen] || pacchetto.basi.unico || pacchetto.basi.nessuno));
   const font = await doc.embedFont(StandardFonts.TimesRoman);
   const pagine = doc.getPages();
   const firma = mem.get("m104_firma", null);
@@ -350,6 +358,12 @@ async function creaPdf(m) {
       pg.drawRectangle({ x: c.x + 1, y: base - 0.4, width: Math.max(4, largCampo - 1.5), height: size * 1.0, color: rgb(1, 1, 1) });
     pg.drawText(testo, { x: c.x + 3, y: base + 1, size: sz, font, color: nero });
   }
+  // moduli preparati dal telefono: le caselle le spunta l'app
+  for (const k of pacchetto.caselle || []) {
+    if (!spuntata(k.regola, v)) continue;
+    const pg = pagine[(k.pag || 1) - 1]; if (!pg) continue;
+    pg.drawRectangle({ x: k.x + 1, y: pg.getHeight() - k.y - k.h + 1, width: Math.max(2, k.w - 2), height: Math.max(2, k.h - 2), color: nero });
+  }
   doc.setTitle(`Modulo L.104 ${v.mese_anno}`);
   const bytes = await doc.save();
   const imp = impost(), dati = Object.assign({}, f, v);
@@ -369,6 +383,7 @@ $("b-crea").addEventListener("click", async () => {
     ultimo = await creaPdf(m);
     $("nomepdf").textContent = ultimo.nome + " · " + ultimo.periodi;
     $("risultato").style.display = "block";
+    anteprima(ultimo.blob);
     const st = mem.get("m104_storico", []);
     st.unshift({ nome: ultimo.nome, periodi: ultimo.periodi, quando: fmt(new Date()) });
     mem.set("m104_storico", st.slice(0, 30));
@@ -400,6 +415,30 @@ function apriPdf() {
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 $("b-apri").addEventListener("click", apriPdf);
+$("anteprima").addEventListener("click", apriPdf);
+async function caricaPdfjs() {
+  if (window.pdfjsLib) return;
+  await new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "lib/pdf.min.js"; s.onload = ok; s.onerror = ko; document.head.append(s); });
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = "lib/pdf.worker.min.js";
+}
+// mostra il PDF appena creato, così lo controlli prima di inviarlo
+async function anteprima(blob) {
+  const box = $("anteprima");
+  box.innerHTML = '<p class="muted">Preparo l’anteprima…</p>';
+  try {
+    await caricaPdfjs();
+    const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise;
+    box.innerHTML = "";
+    for (let n = 1; n <= doc.numPages; n++) {
+      const pg = await doc.getPage(n), base = pg.getViewport({ scale: 1 });
+      const larg = box.clientWidth || 340, dpr = Math.min(2.5, window.devicePixelRatio || 1);
+      const vp = pg.getViewport({ scale: (larg / base.width) * dpr });
+      const cv = document.createElement("canvas"); cv.width = vp.width; cv.height = vp.height;
+      box.append(cv);
+      await pg.render({ canvasContext: cv.getContext("2d"), viewport: vp }).promise;
+    }
+  } catch (e) { console.error(e); box.innerHTML = '<p class="muted">Anteprima non disponibile: usa "Apri / salva PDF".</p>'; }
+}
 $("b-oggetto").addEventListener("click", async () => { if (ultimo && await copia(ultimo.oggetto)) toast("Oggetto copiato ✔"); });
 $("b-gmail").addEventListener("click", () => {
   if (!ultimo) return;
@@ -415,7 +454,8 @@ $("b-gmail").addEventListener("click", () => {
 costruisciAnag(); costruisciImpost(); costruisciCompila();
 caricaPacchetto().then(() => mostra(location.hash ? "s-" + location.hash.slice(1) : "s-home"));
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
-window.M104 = { creaPdf, calcolaValori, leggiMese }; // per i test
+async function salvaPacchetto(j) { await idbSet("pacchetto", j); pacchetto = j; infoModulo(); aggiornaAvvisi(); }
+window.M104 = { creaPdf, calcolaValori, leggiMese, salvaPacchetto, toast, vai, anteprima };
 
 // ---------------------------------------------------------------- condivisione e installazione
 const LINK_APP = location.origin + location.pathname.replace(/index\.html$/, "");
