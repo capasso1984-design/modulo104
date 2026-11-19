@@ -102,6 +102,7 @@ details summary{cursor:pointer;font-weight:800;padding:.2rem 0;color:var(--pri)}
 .prep-num--c{background:rgba(255,170,0,.2);color:#a85d00}
 .prep-dx{flex:1;min-width:0;display:flex;flex-direction:column;gap:.3rem}
 .prep-dx small{color:var(--muted);overflow-wrap:anywhere}
+.formati{display:flex;flex-direction:column;gap:.3rem;background:rgba(var(--pri-rgb),.06);border-radius:12px;padding:.7rem .85rem;font-size:.88rem;margin:.3rem 0}
 #toast{position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));background:#1b2a41;color:#fff;padding:12px 14px;border-radius:12px;display:none;z-index:9;box-shadow:0 8px 20px rgba(0,0,0,.25)}
 </style>
 </head>
@@ -260,7 +261,12 @@ details summary{cursor:pointer;font-weight:800;padding:.2rem 0;color:var(--pri)}
   <h1 class="shub__titolo">Modulo da compilare</h1>
   <div class="card">
     <p id="info-modulo" class="muted">Nessun modulo caricato.</p>
-    <label for="file-m104" class="btn" style="text-transform:none;letter-spacing:0;color:#fff">📄 Carica il file del modulo (.m104)</label>
+    <div class="formati"><b>Formati accettati</b>
+      <span>✅ <b>.m104</b> · il modulo già pronto (dal PC o da un collega)</span>
+      <span>✅ <b>PDF</b> del modulo vuoto · lo prepari qui sul telefono</span>
+      <span>⚠️ <b>Word (.docx)</b> · non direttamente: va prima trasformato in PDF, oppure preparato dal PC</span>
+    </div>
+    <label for="file-m104" class="btn" style="text-transform:none;letter-spacing:0;color:#fff">📄 Scegli il file (.m104 o PDF)</label>
     <input id="file-m104" type="file" style="display:none">
     <div class="avviso" id="avviso-word" style="display:none"></div>
     <button class="btn sec" data-vai="s-prepara">📱 Non hai il file? Preparalo da un PDF</button>
@@ -274,6 +280,7 @@ details summary{cursor:pointer;font-weight:800;padding:.2rem 0;color:var(--pri)}
   <h1 class="shub__titolo">Prepara da un PDF</h1>
   <div class="card">
     <p class="muted">Serve il modulo <b>vuoto</b> in PDF. Se hai solo il Word, su iPhone: apri il file in <b>File</b> → <b>Condividi</b> → <b>Stampa</b> → allarga l'anteprima con due dita → <b>Condividi</b> → <b>Salva su File</b>.</p>
+    <p class="muted"><b>Formato accettato:</b> PDF (anche creato da un Word con "Stampa → Salva su File").</p>
     <label for="prep-file" class="btn" style="text-transform:none;letter-spacing:0;color:#fff">📄 Scegli il PDF del modulo vuoto</label>
     <input id="prep-file" type="file" style="display:none">
     <div class="avviso" id="avviso-word2" style="display:none"></div>
