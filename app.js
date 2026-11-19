@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "1.6";
+const VERSIONE = "1.8";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -188,15 +188,45 @@ function infoModulo() {
     : "Nessun modulo caricato.";
   $("sottotitolo").textContent = pacchetto ? pacchetto.nome : "Programmazione permessi L.104/92";
 }
+// riconosce il tipo di file dai primi byte, non dal nome (WhatsApp e iCloud a volte cambiano l'estensione)
+async function tipoFile(f) {
+  const t = new Uint8Array(await f.slice(0, 8).arrayBuffer());
+  if (t[0] === 0x25 && t[1] === 0x50 && t[2] === 0x44 && t[3] === 0x46) return "pdf";          // %PDF
+  if (t[0] === 0x50 && t[1] === 0x4b) return /\.(docx?|dotx)$/i.test(f.name) || !/\.m104$/i.test(f.name) ? "word" : "zip"; // PK = Word
+  if (t[0] === 0xd0 && t[1] === 0xcf) return "word";                                               // vecchio .doc
+  if (t[0] === 0x7b) return "m104";                                                                // {
+  return "altro";
+}
+function spiegaWord() {
+  const box = $("avviso-word");
+  box.style.display = "block";
+  box.innerHTML = `<b>Hai scelto un file Word.</b> Il telefono non riesce a impaginare un Word in modo identico all'originale, quindi serve uno di questi due passaggi (una volta sola):
+    <ol><li><b>Dal telefono:</b> trasformalo in PDF. Su iPhone: apri il Word nell'app <b>File</b> → <b>Condividi</b> → <b>Stampa</b> → allarga l'anteprima con due dita → <b>Condividi</b> → <b>Salva su File</b>. Poi tocca <b>"Preparalo da un PDF"</b> e scegli quel PDF.</li>
+    <li><b>Dal PC:</b> apri l'app "Modulo 104", carica il Word e premi <b>"Prepara per il telefono"</b>: ti dà il file .m104 da caricare qui.</li></ol>`;
+  box.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+// chiede conferma prima di sostituire il modulo già in uso
+function confermaSostituzione(nuovo) {
+  if (!pacchetto) return true;
+  return confirm(`Stai sostituendo il modulo in uso:\n«${pacchetto.nome}» (del ${pacchetto.creato})\n\ncon:\n«${nuovo.nome}» (del ${nuovo.creato})\n\nContinuo?`);
+}
 $("file-m104").addEventListener("change", async (e) => {
-  const f = e.target.files[0]; if (!f) return;
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  $("avviso-word").style.display = "none";
+  const tipo = await tipoFile(f);
+  if (tipo === "word") { spiegaWord(); return; }
+  if (tipo === "pdf") {   // un PDF va preparato: lo apro direttamente nella preparazione
+    vai("s-prepara"); $("prep-nome").value = f.name.replace(/\.pdf$/i, ""); window.M104prep.apriPdf(f);
+    toast("È un PDF: controlla le scelte e salva il modulo"); return;
+  }
   try {
     const j = JSON.parse(await f.text());
     if (j.formato !== "m104" || !j.basi || !j.campi) throw new Error("formato");
+    if (!confermaSostituzione(j)) return;
+    j.origine = j.origine || "pc"; j.caricato = new Date().toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" });
     await idbSet("pacchetto", j); pacchetto = j; infoModulo(); toast("Modulo caricato ✔");
     aggiornaAvvisi(); vai("s-home");
-  } catch (err) { toast("Questo non è un file .m104 valido"); }
-  e.target.value = "";
+  } catch (err) { toast("Questo file non è un modulo: scegli il file .m104, oppure un PDF del modulo vuoto"); }
 });
 function esc(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
@@ -460,7 +490,7 @@ costruisciAnag(); costruisciImpost(); costruisciCompila();
 caricaPacchetto().then(() => mostra(location.hash ? "s-" + location.hash.slice(1) : "s-home"));
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 async function salvaPacchetto(j) { await idbSet("pacchetto", j); pacchetto = j; infoModulo(); aggiornaAvvisi(); }
-window.M104 = { creaPdf, calcolaValori, leggiMese, salvaPacchetto, toast, vai, anteprima };
+window.M104 = { creaPdf, calcolaValori, leggiMese, salvaPacchetto, toast, vai, anteprima, tipoFile, confermaSostituzione, attuale: () => pacchetto };
 
 // ---------------------------------------------------------------- condivisione e installazione
 const LINK_APP = location.origin + location.pathname.replace(/index\.html$/, "");

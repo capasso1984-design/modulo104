@@ -307,6 +307,7 @@
   async function salva() {
     if (!stato) return;
     const nome = ($("prep-nome").value || stato.nome).trim();
+    if (!window.M104.confermaSostituzione({ nome, creato: "oggi" })) return;
     const p1 = stato.pagine[0];
     const pacchetto = {
       formato: "m104", versione: 2, origine: "telefono",
@@ -325,7 +326,19 @@
     window.M104.vai("s-home");
   }
 
-  $("prep-file").addEventListener("change", (e) => { const f = e.target.files[0]; if (f) { $("prep-nome").value = f.name.replace(/\.pdf$/i, ""); apriPdf(f); } e.target.value = ""; });
+  $("prep-file").addEventListener("change", async (e) => {
+    const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+    const box = $("avviso-word2"); box.style.display = "none";
+    const tipo = await window.M104.tipoFile(f);
+    if (tipo !== "pdf") {
+      box.style.display = "block";
+      box.innerHTML = tipo === "word"
+        ? "<b>Questo è un file Word, qui serve il PDF.</b> Su iPhone: apri il Word in <b>File</b> → <b>Condividi</b> → <b>Stampa</b> → allarga l'anteprima con due dita → <b>Condividi</b> → <b>Salva su File</b>, poi scegli quel PDF."
+        : "<b>Questo file non è un PDF.</b> Scegli il PDF del modulo vuoto.";
+      return;
+    }
+    $("prep-nome").value = f.name.replace(/\.pdf$/i, ""); apriPdf(f);
+  });
   $("prep-salva").addEventListener("click", () => salva().catch((e) => { console.error(e); window.M104.toast("Errore nel salvataggio: " + e.message); }));
   window.M104prep = { apriPdf, salva, stato: () => stato };
 })();

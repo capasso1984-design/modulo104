@@ -83,6 +83,7 @@ details summary{cursor:pointer;font-weight:800;padding:.2rem 0;color:var(--pri)}
 .ico-share{display:inline-block;border:1px solid var(--line);border-radius:6px;padding:0 6px}
 .avviso{background:rgba(var(--warn-rgb),.2);border-radius:14px;padding:.7rem .9rem;font-size:.92rem;line-height:1.45}
 .avviso p{margin:.15rem 0}
+.avviso ol{margin:.4rem 0 0;padding-left:1.2rem}.avviso li{margin:.35rem 0}
 .periodo{display:flex;gap:8px;align-items:flex-end;margin-top:.3rem}
 .periodo .lab{padding-bottom:12px;color:var(--muted);font-weight:800}
 .mini{flex:1;min-width:0;margin-top:0;display:flex;flex-direction:column;gap:2px}
@@ -261,6 +262,7 @@ details summary{cursor:pointer;font-weight:800;padding:.2rem 0;color:var(--pri)}
     <p id="info-modulo" class="muted">Nessun modulo caricato.</p>
     <label for="file-m104" class="btn" style="text-transform:none;letter-spacing:0;color:#fff">📄 Carica il file del modulo (.m104)</label>
     <input id="file-m104" type="file" style="display:none">
+    <div class="avviso" id="avviso-word" style="display:none"></div>
     <button class="btn sec" data-vai="s-prepara">📱 Non hai il file? Preparalo da un PDF</button>
     <p class="muted">Il file .m104 si prepara sul PC con l'app "Modulo 104" (pulsante "Prepara per il telefono"), oppure te lo manda un collega. Salvalo (su iPhone in "File") e caricalo da qui. Quando cambia il modulo, carica il nuovo file.</p>
   </div>
@@ -273,7 +275,8 @@ details summary{cursor:pointer;font-weight:800;padding:.2rem 0;color:var(--pri)}
   <div class="card">
     <p class="muted">Serve il modulo <b>vuoto</b> in PDF. Se hai solo il Word, su iPhone: apri il file in <b>File</b> → <b>Condividi</b> → <b>Stampa</b> → allarga l'anteprima con due dita → <b>Condividi</b> → <b>Salva su File</b>.</p>
     <label for="prep-file" class="btn" style="text-transform:none;letter-spacing:0;color:#fff">📄 Scegli il PDF del modulo vuoto</label>
-    <input id="prep-file" type="file" accept="application/pdf,.pdf" style="display:none">
+    <input id="prep-file" type="file" style="display:none">
+    <div class="avviso" id="avviso-word2" style="display:none"></div>
     <p class="muted" id="prep-stato"></p>
   </div>
   <div class="card">
@@ -319,7 +322,7 @@ details summary{cursor:pointer;font-weight:800;padding:.2rem 0;color:var(--pri)}
 </main>
 <div id="toast"></div>
 <script src="pdf-lib.min.js"></script>
-<script src="app.js?v=1.6"></script>
-<script src="prepara.js?v=1.7"></script>
+<script src="app.js?v=1.8"></script>
+<script src="prepara.js?v=1.8"></script>
 </body>
 </html>
