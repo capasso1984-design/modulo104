@@ -21,13 +21,18 @@
     return y;
   }
 
-  // d = { anno, mese, chi, richiedente, giorni:[], g151:[], turni:[], orari:[], nessuno, motivo }
+  // tonalità della 104 per persona: rosso scuro, rosso chiaro, rosa
+  const TONI = [{ bg: "#b91c1c", fg: "#fff", om: "rgba(127,29,29,.38)" }, { bg: "#fca5a5", fg: "#7f1d1d", om: "rgba(239,68,68,.32)" }, { bg: "#e11d48", fg: "#fff", om: "rgba(225,29,72,.32)" }];
+  // d = { anno, mese, richiedente, p104:[{giorni, orari, et, tono}], nessuni:[{et, motivo}], g151:[], turni:[] }
   function disegna(d) {
+    if (!d.p104) d.p104 = (d.giorni || []).length ? [{ giorni: d.giorni, orari: d.orari || [], et: "104", tono: 0 }] : [];
+    if (!d.nessuni) d.nessuni = d.nessuno ? [{ et: "104", motivo: d.motivo }] : [];
+    const per104 = {}; d.p104.forEach((x) => x.giorni.forEach((g) => { per104[g] = x; }));
     const W = 1080, M = 54, gw = W - 2 * M, cw = gw / 7, ch = 112;
     const primo = new Date(d.anno, d.mese - 1, 1), vuoti = (primo.getDay() + 6) % 7, nG = new Date(d.anno, d.mese, 0).getDate();
     const righe = Math.ceil((vuoti + nG) / 7);
     const fest = typeof festivi === "function" ? festivi(d.anno) : {};
-    const sel = new Set(d.giorni || []), s5 = new Set(d.g151 || []), tu = new Set(d.turni || []);
+    const s5 = new Set(d.g151 || []), tu = new Set(d.turni || []);
     const cv = document.createElement("canvas"), ctx = cv.getContext("2d");
     const font = (w, s) => `${w} ${s}px -apple-system, "Segoe UI", Roboto, sans-serif`;
     // altezza: intestazione + griglia + riepilogo (stima generosa, poi si ritaglia)
@@ -38,7 +43,7 @@
     ctx.fillStyle = gr; tondo(0, ctx, 24, 24, W - 48, 150, 34); ctx.fill();
     ctx.fillStyle = "#fff"; ctx.font = font(800, 54); ctx.fillText(`${MESI[d.mese - 1]} ${d.anno}`, 70, 100);
     ctx.font = font(500, 28); ctx.fillStyle = "#dce8fb";
-    ctx.fillText([d.richiedente, d.chi ? "per " + d.chi : ""].filter(Boolean).join(" · ").slice(0, 70), 72, 146);
+    ctx.fillText(String(d.richiedente || "").slice(0, 70), 72, 146);
     // card bianca con il calendario
     let y = 204;
     const altCard = 70 + righe * (ch + 12) + 20;
@@ -51,29 +56,30 @@
       const g = k - vuoti + 1; if (g < 1 || g > nG) continue;
       const col = k % 7, rig = Math.floor(k / 7), x = M + col * cw + 5, yy = y + rig * (ch + 12), w = cw - 10;
       const wd = new Date(d.anno, d.mese - 1, g).getDay(), we = wd === 0 || wd === 6, fe = fest[`${d.mese}-${g}`];
-      const a104 = sel.has(g), a151 = s5.has(g), t = tu.has(g);
+      const x104 = per104[g], a104 = !!x104, a151 = s5.has(g), t = tu.has(g), tono = a104 ? TONI[x104.tono || 0] : null;
       let bg = C.cella, fg = C.txt, et = "";
-      if (a104) { bg = C.rosso104; fg = "#fff"; }
+      if (a104) { bg = tono.bg; fg = tono.fg; }
       else if (a151) { bg = C.blu151; fg = "#fff"; }
       else if (t) { bg = C.verde; fg = we || fe ? C.rosso : C.verdeT; }
       else if (we || fe) { bg = C.grigio; fg = "#b42318"; }
-      et = a104 ? "104" : a151 ? "151" : t ? "turno" : "";
+      et = a104 ? x104.et : a151 ? "151" : t ? "turno" : "";
       const su = t || a104 || a151;   // turni, 104 e 151 sono "in rilievo"
-      if (su) { ctx.shadowColor = a104 ? "rgba(185,28,28,.35)" : a151 ? "rgba(29,78,216,.35)" : "rgba(15,90,70,.28)"; ctx.shadowBlur = 16; ctx.shadowOffsetY = 6; }
+      if (su) { ctx.shadowColor = a104 ? tono.om : a151 ? "rgba(29,78,216,.35)" : "rgba(15,90,70,.28)"; ctx.shadowBlur = 16; ctx.shadowOffsetY = 6; }
       ctx.fillStyle = bg; tondo(0, ctx, x, yy - (su ? 4 : 0), w, ch, 20); ctx.fill(); ctx.shadowColor = "transparent";
       if (su) { const lu = ctx.createLinearGradient(0, yy - 4, 0, yy + ch / 2); lu.addColorStop(0, "rgba(255,255,255,.35)"); lu.addColorStop(1, "rgba(255,255,255,0)"); ctx.fillStyle = lu; tondo(0, ctx, x, yy - 4, w, ch / 2, 20); ctx.fill(); }
       if (t && !(a104 || a151)) { ctx.strokeStyle = C.verdeB; ctx.lineWidth = 2.5; tondo(0, ctx, x, yy - 4, w, ch, 20); ctx.stroke(); }
       if (t && (a104 || a151)) { ctx.strokeStyle = C.anello; ctx.lineWidth = 6; tondo(0, ctx, x - 2, yy - 6, w + 4, ch + 4, 22); ctx.stroke(); }
       ctx.fillStyle = fg; ctx.font = font(800, 38); ctx.fillText(String(g), x + w / 2, yy + (et ? 52 : 68) - (su ? 4 : 0));
-      if (et) { ctx.font = font(800, 21); ctx.fillText(et, x + w / 2, yy + 88 - (su ? 4 : 0)); }
+      if (et) { let fs = 21; ctx.font = font(800, fs); while (fs > 13 && ctx.measureText(et).width > w - 10) { fs--; ctx.font = font(800, fs); } ctx.fillText(et, x + w / 2, yy + 88 - (su ? 4 : 0)); }
     }
     ctx.textAlign = "left";
     y = 204 + altCard + 30;
     // riepilogo a righe colorate (come le card della Cassa)
     const dd = (gs) => [...gs].sort((a, b) => a - b).map((g) => `${BREVI_G[new Date(d.anno, d.mese - 1, g).getDay()]} ${pad2(g)}`).join(" · ");
     const voci = [];
-    if (d.nessuno) voci.push(["#b7791f", "104", "Nessun permesso 104", d.motivo ? `«${d.motivo}»` : "", ""]);
-    else if (sel.size || (d.orari || []).length) voci.push(["#dc2626", "104", "Permessi 104", [dd(sel), (d.orari || []).map(([g, a, b]) => `${pad2(g)} ${a}-${b}`).join(" · ")].filter(Boolean).join(" · "), `${sel.size}/3`]);
+    for (const x of d.p104) voci.push([x.tono === 1 ? "#f87171" : x.tono === 2 ? "#e11d48" : "#b91c1c", "104", x.et === "104" ? "Permessi 104" : "Permessi " + x.et,
+      [dd(x.giorni), (x.orari || []).map(([g, a, b]) => `${pad2(g)} ${a}-${b}`).join(" · ")].filter(Boolean).join(" · "), `${x.giorni.length}/3`]);
+    for (const x of d.nessuni) voci.push(["#b7791f", "104", x.et === "104" ? "Nessun permesso 104" : "Nessun permesso " + x.et, x.motivo ? `«${x.motivo}»` : "", ""]);
     if (s5.size) voci.push(["#2563eb", "151", "Congedo 151", dd(s5), `${s5.size} gg`]);
     if (tu.size) voci.push(["#0f8a6c", "T", "Turni di servizio", dd(tu), String(tu.size)]);
     if (!voci.length) voci.push(["#4d5e78", "—", "Nessun giorno segnato", "", ""]);
@@ -92,7 +98,7 @@
     }
     // legenda
     y += 6; ctx.font = font(600, 22); let lx = 40;
-    for (const [c, t, bordo] of [[C.rosso104, "104"], [C.blu151, "151"], [C.verde, "Turno", C.verdeB], [C.grigio, "Festivo / fine settimana", "#e3b0ab"], ["#fff", "104 o 151 su un turno", C.anello]]) {
+    for (const [c, t, bordo] of [...(d.p104.length > 1 ? d.p104.map((x) => [TONI[x.tono || 0].bg, x.et]) : [[TONI[0].bg, "104"]]), [C.blu151, "151"], [C.verde, "Turno", C.verdeB], [C.grigio, "Festivo / fine settimana", "#e3b0ab"], ["#fff", "104 o 151 su un turno", C.anello]]) {
       ctx.fillStyle = c; tondo(0, ctx, lx, y, 26, 26, 7); ctx.fill(); if (bordo) { ctx.strokeStyle = bordo; ctx.lineWidth = 2; ctx.stroke(); }
       ctx.fillStyle = C.muted; ctx.fillText(t, lx + 34, y + 21); lx += 34 + ctx.measureText(t).width + 26;
       if (lx > W - 260) { lx = 40; y += 40; }

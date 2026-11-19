@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.19";
+const VERSIONE = "3.20";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -447,7 +447,7 @@ function disegnaCal() {
   $("lg-we").textContent = blocco ? "Sab/Dom: bloccati" : "Sab/Dom: con avviso";
   const primo = new Date(cal.anno, cal.mese - 1, 1), vuoti = (primo.getDay() + 6) % 7, nGiorni = new Date(cal.anno, cal.mese, 0).getDate();
   const g = $("cal-griglia"); g.innerHTML = "";
-  const turni = turniMese();
+  const turni = turniMese(), cur = personaCorrente(), altri = altri104(cal.anno, cal.mese, cur && cur.id);
   g.classList.toggle("turni-on", cal.modo === "turni");
   const tl = [...turni].sort((x, y) => x - y);
   $("b-avanti").textContent = tl.length ? `Avanti: scegli i giorni 104 →` : "Nessun turno da segnare, vai avanti →";
@@ -457,16 +457,30 @@ function disegnaCal() {
     const dt = new Date(cal.anno, cal.mese - 1, d), wd = dt.getDay(), we = wd === 0 || wd === 6, fe = fest[`${cal.mese}-${d}`];
     const b = document.createElement("button"); b.type = "button";
     const tu = turni.has(d), sc = cal.modo !== "turni" && cal.sel.has(d), s5 = cal.modo !== "turni" && cal.sel151.has(d);
+    const al = !sc && !s5 && cal.modo !== "turni" ? altri[d] : null;   // 104 di un'altra persona
     const premuto = cal.modo === "turni" ? tu : cal.modo === "151" ? s5 : sc;
-    const et = sc ? "104" : s5 ? "151" : tu ? "turno" : "";
-    b.innerHTML = `<span class="cal-n">${d}</span>${et ? `<small class="cal-et">${et}</small>` : ""}`;
-    b.className = "cal-g" + (we ? " we" + (blocco ? " bloc" : "") : "") + (fe ? " fe" : "") + (sc ? " sel" : "") + (s5 ? " s151" : "") + (tu ? " tu" : "") + (dt.toDateString() === oggi.toDateString() ? " oggi" : "");
-    b.setAttribute("aria-label", `${NOMI_G[wd]} ${d} ${MESI[cal.mese - 1]}${fe ? ", festivo" : ""}${tu ? ", turno di servizio" : ""}${sc ? ", scelto per la 104" : ""}${s5 ? ", scelto per la 151" : ""}`);
+    const et = sc ? etichetta104(cur) : s5 ? "151" : al ? al.et : tu ? "turno" : "";
+    b.innerHTML = `<span class="cal-n">${d}</span>${et ? `<small class="cal-et${et.length > 5 ? " lungo" : ""}">${et}</small>` : ""}`;
+    b.className = "cal-g" + (we ? " we" + (blocco ? " bloc" : "") : "") + (fe ? " fe" : "") + (sc ? ` sel t${tono104(cur && cur.id)}` : "") + (al ? ` sel altro t${al.tono}` : "") + (s5 ? " s151" : "") + (tu ? " tu" : "") + (dt.toDateString() === oggi.toDateString() ? " oggi" : "");
+    b.setAttribute("aria-label", `${NOMI_G[wd]} ${d} ${MESI[cal.mese - 1]}${fe ? ", festivo" : ""}${tu ? ", turno di servizio" : ""}${sc ? ", scelto per la 104" : ""}${al ? `, 104 di ${al.nome}` : ""}${s5 ? ", scelto per la 151" : ""}`);
     b.setAttribute("aria-pressed", premuto ? "true" : "false");
     b.addEventListener("click", () => toccaGiorno(d));
     g.append(b);
   }
   totale();
+}
+// ---- più persone assistite: la 104 di ognuna ha la sua tonalità di rosso (scuro, chiaro, rosa)
+function tono104(pid) { const i = persone().findIndex((p) => p.id === pid); return i < 0 ? 0 : Math.min(i, 2); }
+function etichetta104(p) { return persone().length > 1 && p ? "104 " + (p.parentela || String(p.nome || "").split(" ").pop()) : "104"; }
+// giorni 104 già registrati per le ALTRE persone in quel mese: { giorno: { et, tono, nome } }
+function altri104(anno, mese, pidEscluso) {
+  const out = {}; if (persone().length < 2) return out;
+  for (const p of persone()) {
+    if (p.id === pidEscluso) continue;
+    const r = (archivio()[p.id] || {})[`${anno}-${pad2(mese)}`];
+    if (r && !r.solo151 && !r.nessuno) for (const g of r.giorni || []) out[g] = { et: etichetta104(p), tono: tono104(p.id), nome: p.nome };
+  }
+  return out;
 }
 // ---- turni di servizio: si segnano sul calendario (valgono per tutte le persone assistite)
 function chiaveMese() { return `${cal.anno}-${pad2(cal.mese)}`; }
@@ -514,6 +528,8 @@ function toccaGiorno(d) {
     salvaTurni(t); disegnaCal(); return;
   }
   const Gg = NOMI_G[wd][0].toUpperCase() + NOMI_G[wd].slice(1);
+  const al = altri104(cal.anno, cal.mese, (personaCorrente() || {}).id)[d];
+  if (al && !cal.sel.has(d) && !cal.sel151.has(d)) { err.hidden = false; err.textContent = `${Gg} ${d} è già un giorno di 104 per ${al.nome}: scegli un altro giorno.`; return; }
   if (cal.modo === "151") {
     if (cal.sel151.has(d)) { cal.sel151.delete(d); disegnaCal(); return; }
     if (cal.sel.has(d)) { err.hidden = false; err.textContent = `${Gg} ${d} è già un giorno 104: lo stesso giorno non può essere anche 151.`; return; }
@@ -909,7 +925,8 @@ function disegnaArchivio() {
     else if (r && !r.solo151 && (r.giorni.length || r.orari.length)) {
       tot += r.giorni.length;
       const or = r.orari.map(([g, x, y]) => `${pad2(g)} ${esc(x)}-${esc(y)}`).join(" · ");
-      righe += riga("a104", "104", "Permessi 104", [gg(i, r.giorni), or].filter(Boolean).join(" · ") , `${r.giorni.length}/3`, "104", i + 1);
+      const pp = persone().find((x) => x.id === pid);
+      righe += riga(tono104(pid) === 1 ? "a104 a104b" : tono104(pid) === 2 ? "a104 a104c" : "a104", "104", persone().length > 1 && pp ? `Permessi ${etichetta104(pp)}` : "Permessi 104", [gg(i, r.giorni), or].filter(Boolean).join(" · ") , `${r.giorni.length}/3`, "104", i + 1);
     }
     if (r && r.g151 && r.g151.length) { t151 += r.g151.length; righe += riga("a151", "151", "Congedo 151", gg(i, r.g151), `${r.g151.length} gg`, "151", i + 1); }
     if (tu.length) righe += riga("atu", "T", "Turni di servizio", tu.map((d) => `${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${d}`).join(" · "), String(tu.length), "turni", i + 1);
@@ -952,7 +969,7 @@ async function docMese(pid, anno, mese, tipo, az, btn) {
     let out;
     if (tipo === "turni") {
       const p = persone().find((x) => x.id === pid) || { nome: "" };
-      const cv = M104vedi.disegna({ anno, mese, chi: "", richiedente: fissi(p).grado_nome + " · turni di servizio", giorni: [], g151: [], turni: turniArchivio(r, anno, mese) });
+      const cv = M104vedi.disegna({ anno, mese, chi: "", richiedente: fissi(p).grado_nome + " · turni di servizio", p104: [], g151: [], turni: turniArchivio(r, anno, mese) });
       out = { blob: await M104vedi.blob(cv), nome: `Turni ${MESI[mese - 1]} ${anno}.png`, tipo: "image/png", titolo: `Turni ${MESI[mese - 1]} ${anno}` };
     } else if (tipo === "151") {
       if (!ha151()) { toast("Carica prima il Word della 151 in «Modulo da compilare»", 5000); return; }
@@ -981,16 +998,25 @@ async function docMese(pid, anno, mese, tipo, az, btn) {
 // ---- visualizza / condividi un mese
 let vediCorrente = null;   // { pid, anno, mese, blob, nome, titolo }
 async function preparaVedi(pid, anno, mese) {
-  const r = (archivio()[pid] || {})[`${anno}-${pad2(mese)}`] || null;
-  const p = persone().find((x) => x.id === pid) || { nome: (r && r.nome) || "" , parentela: "" };
-  const d = { anno, mese, chi: p.nome + (p.parentela ? ` (${p.parentela})` : ""), richiedente: fissi(p).grado_nome,
-    giorni: r && !r.solo151 ? r.giorni : [], g151: (r && r.g151) || [], turni: turniArchivio(r, anno, mese), orari: (r && r.orari) || [],
-    nessuno: !!(r && r.nessuno), motivo: (r && r.motivo) || "" };
+  const k = `${anno}-${pad2(mese)}`, ar = archivio(), r = (ar[pid] || {})[k] || null;
+  const p = persone().find((x) => x.id === pid) || { nome: (r && r.nome) || "", parentela: "" };
+  // il planning del mese mette insieme tutte le persone assistite (104 in rosso scuro / chiaro)
+  const tutte = persone().length ? persone() : [p], p104 = [], nessuni = [], g151 = new Set();
+  let turniR = null;
+  for (const q of tutte) {
+    const rq = (ar[q.id] || {})[k]; if (!rq) continue;
+    turniR = turniR || rq;
+    (rq.g151 || []).forEach((g) => g151.add(g));
+    if (rq.nessuno) nessuni.push({ et: etichetta104(q), motivo: rq.motivo });
+    else if (!rq.solo151 && ((rq.giorni || []).length || (rq.orari || []).length)) p104.push({ giorni: rq.giorni || [], orari: rq.orari || [], et: etichetta104(q), tono: tono104(q.id) });
+  }
+  const d = { anno, mese, richiedente: fissi(p).grado_nome, p104, nessuni, g151: [...g151], turni: turniArchivio(turniR || r, anno, mese) };
+  d.giorni = p104.flatMap((x) => x.giorni);
   const cv = M104vedi.disegna(d), blob = await M104vedi.blob(cv);
   const titolo = `${MESI[mese - 1]} ${anno}`;
   vediCorrente = { pid, anno, mese, blob, titolo, url: cv.toDataURL("image/png"),
-    nome: `Calendario ${titolo} - ${p.nome}`.replace(/[<>:"/\|?*]/g, "-") + ".png",
-    testo: `${titolo} · ${d.chi}` + (d.giorni.length ? `
+    nome: `Planning ${titolo} - ${anag().cognome || ""}`.replace(/[<>:"/\|?*]/g, "-") + ".png",
+    testo: `${titolo} · ${d.richiedente}` + p104.map((x) => `\n${x.et}: ${x.giorni.map((g) => pad2(g)).join(", ")}`).join("") + (false ? `
 104: ${d.giorni.map((g) => pad2(g)).join(", ")}` : "") + (d.g151.length ? `
 151: ${d.g151.map((g) => pad2(g)).join(", ")}` : "") + (d.turni.length ? `
 Turni: ${d.turni.join(", ")}` : "") };
