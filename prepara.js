@@ -90,41 +90,46 @@
     return out.filter((r, i) => !out.slice(0, i).some((q) => Math.abs(q.x - r.x) < 2 && Math.abs(q.y - r.y) < 2));
   }
 
-  // righe "____" con la loro posizione
+  // righe "____" con la loro posizione: si lavora sulla riga intera, perché i PDF spezzano il testo a caso
   function trovaCampi(pagine) {
     const campi = [];
+    const RE = /_{3,}(?:[ \t]*\/[ \t]*_{2,}){0,2}(?:\s+(?:19|20)\d\d(?!\d))?|(?:^|[^a-zà-ù])anno\s+(?:19|20)\d\d(?!\d)/gi;
     for (const p of pagine) {
-      const grezzi = [];
-      for (const z of p.pezzi) {
-        const re = /_{3,}/g; let m;
-        const pesi = Array.from(z.s).map(largh), tot = pesi.reduce((a, b) => a + b, 0) || 1, sc = z.w / tot;
-        const xDi = (i) => z.x + pesi.slice(0, i).reduce((a, b) => a + b, 0) * sc;
-        while ((m = re.exec(z.s))) grezzi.push({ pag: p.n, x: xDi(m.index), x2: xDi(m.index + m[0].length), b: z.b, size: z.size, t: m[0], z0: z, i0: m.index, z1: z, i1: m.index + m[0].length });
+      const ordinati = p.pezzi.slice().sort((a, b) => a.b - b.b || a.x - b.x);
+      const righe = [];
+      for (const z of ordinati) {
+        const r = righe.find((r) => Math.abs(r.b - z.b) < 1.8);
+        if (r) r.pezzi.push(z); else righe.push({ b: z.b, pezzi: [z] });
       }
-      grezzi.sort((a, b) => (Math.abs(a.b - b.b) > 1.5 ? a.b - b.b : a.x - b.x));
-      // unisce i pezzi vicini sulla stessa riga (es. date "__/__/____")
-      for (const g of grezzi) {
-        const u = campi[campi.length - 1];
-        if (u && u.pag === g.pag && Math.abs(u.b - g.b) < 1.5 && g.x - u.x2 < 6) {
-          if (g.x - u.x2 > 0.8) u.t += "/"; u.t += g.t; u.x2 = g.x2; u.z1 = g.z1; u.i1 = g.i1;
-        } else campi.push({ ...g });
-      }
+      righe.sort((a, b) => a.b - b.b);
+      righe.forEach((r, ir) => {
+        r.pezzi.sort((a, b) => a.x - b.x);
+        let L = ""; const mappa = [];
+        for (const z of r.pezzi) {
+          const pesi = Array.from(z.s).map(largh), tot = pesi.reduce((a, b) => a + b, 0) || 1, sc = z.w / tot;
+          let acc = 0;
+          Array.from(z.s).forEach((ch, k) => { mappa.push({ z, x: z.x + acc * sc, w: pesi[k] * sc }); acc += pesi[k]; });
+          L += Array.from(z.s).join("");
+        }
+        r.testo = L;
+        const caratteri = Array.from(L);
+        let m; RE.lastIndex = 0;
+        const Lc = caratteri.join("");
+        while ((m = RE.exec(Lc))) {
+          let i0 = Array.from(Lc.slice(0, m.index)).length, t = m[0];
+          if (!t.startsWith("_")) { const k = t.search(/\d/); i0 += Array.from(t.slice(0, k)).length; t = t.slice(k); } // "anno 2025": solo l'anno
+          const n = Array.from(t).length, a0 = mappa[i0], a1 = mappa[i0 + n - 1];
+          if (!a0 || !a1) continue;
+          campi.push({ pag: p.n, x: a0.x, x2: a1.x + a1.w, b: a0.z.b, size: a0.z.size, t,
+            prima: caratteri.slice(0, i0).join("").replace(/[_\s/]+$/, " ").replace(/^\s+$/, ""),
+            dopo: caratteri.slice(i0 + n).join(""),
+            sopra: ir > 0 ? righe[ir - 1].testo : "", sp: ir > 0 ? a0.z.b - righe[ir - 1].b : 40 });
+        }
+      });
     }
-    // testo prima e dopo sulla stessa riga, per capire cosa va scritto
     for (const c of campi) {
-      const p = pagine[c.pag - 1];
-      const riga = p.pezzi.filter((z) => Math.abs(z.b - c.b) < 2.5).sort((a, b) => a.x - b.x);
-      const i0 = riga.indexOf(c.z0), i1 = riga.indexOf(c.z1);
-      c.prima = (riga.slice(0, i0).map((z) => z.s).join("") + c.z0.s.slice(0, c.i0)).replace(/[_\s/]+$/, " ").replace(/^\s+$/, "");
-      c.dopo = c.z1.s.slice(c.i1) + riga.slice(i1 + 1).map((z) => z.s).join("");
-      // se lo spazio è all'inizio della riga, guarda la fine della riga sopra
-      if (!c.prima.trim()) {
-        const sopra = p.pezzi.filter((z) => z.b < c.b - 3 && z.b > c.b - 30);
-        const bmax = Math.max(...sopra.map((z) => z.b), -1);
-        c.sopra = sopra.filter((z) => Math.abs(z.b - bmax) < 2).sort((a, b) => a.x - b.x).map((z) => z.s).join("");
-      }
+      if (c.prima.trim()) c.sopra = "";
       c.y = c.b - c.size * 0.86;
-      delete c.z0; delete c.z1;
     }
     return campi;
   }
@@ -142,7 +147,7 @@
       else if (/[-–]$/.test(b) && /servizio presso|aeroporto|comando/.test(b)) v = "fisso:reparto";
       else if (/mese( di)?$/.test(b)) v = /^anno/.test(a) || a.slice(0, 15).includes("anno") ? "var:mese" : "var:mese_anno";
       else if (/anno$/.test(b)) v = "var:anno";
-      else if (/sig\.?(re\/ra)?$/.test(b)) v = "fisso:assistito";
+      else if (/sig\.?\s*(re\/ra)?$/.test(b)) v = "fisso:assistito";
       else if (coda.includes("parentela")) v = "fisso:parentela";
       else if (/giorni$/.test(b)) v = "var:giorni_lettere";
       else if (/\($/.test(b) && b.slice(-30).includes("giorni")) v = "var:giorni_numero";
@@ -170,8 +175,22 @@
     if (t.includes("nessun altro")) return "sempre";
     return "mai";
   }
+  function casellaCarattere(z) {
+    const t = z.s.trim();
+    if (t.length !== 1) return false;
+    const c = t.charCodeAt(0);
+    return (c >= 0xF000 && c <= 0xF0FF) || "❑❒□☐▢◻⬜".includes(t);
+  }
   function trovaCaselle(pagine) {
     const out = [];
+    for (const p of pagine) for (const z of p.pezzi) {
+      if (!casellaCarattere(z)) continue;
+      const lato = z.size * 0.62, r = { x: z.x + Math.max(0, (z.w - lato) / 2), y: z.b - lato - z.size * 0.05, w: lato, h: lato };
+      const t = testoAccanto(p, r);
+      if (!t) continue;
+      out.push({ pag: p.n, ...r, testo: t.slice(0, 70), regola: regolaCasella(t) });
+      p.rett = p.rett.filter((q) => Math.hypot(q.x - r.x, q.y - r.y) > 8);
+    }
     for (const p of pagine) for (const r of p.rett) {
       const t = testoAccanto(p, r);
       if (!t) continue; // un rettangolo senza testo accanto non è una casella
@@ -211,6 +230,7 @@
 
   async function disegna() {
     const cont = $("prep-pagine"); cont.innerHTML = "";
+    const mio = stato;
     for (const p of stato.pagine) {
       const larg = cont.clientWidth || 340, sc = larg / p.w, dpr = Math.min(2, window.devicePixelRatio || 1);
       const vp = p.pg.getViewport({ scale: sc * dpr });
@@ -218,12 +238,14 @@
       const cv = document.createElement("canvas"); cv.width = vp.width; cv.height = vp.height; cv.style.width = "100%";
       wrap.append(cv); cont.append(wrap);
       await p.pg.render({ canvasContext: cv.getContext("2d"), viewport: vp }).promise;
+      if (stato !== mio) return; // nel frattempo è stato scelto un altro PDF
       p.sc = sc; p.wrap = wrap;
       wrap.addEventListener("click", (e) => tocco(p, e));
     }
     segni();
   }
   function segni() {
+    if (!stato) return;
     for (const p of stato.pagine) {
       p.wrap.querySelectorAll(".prep-segno").forEach((x) => x.remove());
       stato.campi.forEach((c, i) => {
@@ -292,7 +314,7 @@
       pagina: { w: p1.w, h: p1.h },
       campi: stato.campi.filter((c) => c.a !== "vuoto").map((c) => ({
         a: c.a, pag: c.pag, x: +c.x.toFixed(2), x2: +c.x2.toFixed(2), y: +c.y.toFixed(2), y2: +c.y.toFixed(2), b: +c.b.toFixed(2),
-        size: +c.size.toFixed(1), t: c.t, regola: c.casella !== null ? stato.caselle[c.casella].regola : null })),
+        size: +c.size.toFixed(1), t: c.t, sp: +(c.sp || 40).toFixed(1), regola: c.casella !== null && !/^\d+$/.test(c.t) ? stato.caselle[c.casella].regola : null })),
       caselle: stato.caselle.map((k) => ({ pag: k.pag, x: +k.x.toFixed(2), y: +k.y.toFixed(2), w: +k.w.toFixed(2), h: +k.h.toFixed(2), regola: k.regola })),
       basi: { unico: b64(stato.bytes) },
     };
@@ -305,5 +327,5 @@
 
   $("prep-file").addEventListener("change", (e) => { const f = e.target.files[0]; if (f) { $("prep-nome").value = f.name.replace(/\.pdf$/i, ""); apriPdf(f); } e.target.value = ""; });
   $("prep-salva").addEventListener("click", () => salva().catch((e) => { console.error(e); window.M104.toast("Errore nel salvataggio: " + e.message); }));
-  window.M104prep = { apriPdf, stato: () => stato };
+  window.M104prep = { apriPdf, salva, stato: () => stato };
 })();

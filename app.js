@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "1.3";
+const VERSIONE = "1.6";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -340,9 +340,12 @@ async function creaPdf(m) {
       // la firma "attraversa" la riga, senza salire sulla scritta "Il richiedente"
       const larg = c.y2 === c.y && c.x2 > c.x ? c.x2 - c.x : 140;
       let w = Math.min(larg * 0.9, 125), h = w * firmaImg.height / firmaImg.width;
-      if (h > 30) { h = 30; w = h * firmaImg.width / firmaImg.height; }
+      // se la riga sopra ("Il richiedente") è vicina, la firma si fa più piccola per non coprirla
+      const hMax = c.sp ? Math.min(30, Math.max(16, c.sp + 3)) : 30;
+      if (h > hMax) { h = hMax; w = h * firmaImg.width / firmaImg.height; }
       const cx = c.x + larg / 2;
-      pg.drawImage(firmaImg, { x: cx - w / 2, y: base - 7, width: w, height: h });
+      const giu = c.sp ? Math.max(0, 20 - c.sp) : 0;   // poco spazio sopra: la firma scende sotto la riga
+      pg.drawImage(firmaImg, { x: cx - w / 2, y: base - 7 - giu, width: w, height: h });
       continue;
     }
     let val = "";
@@ -354,8 +357,10 @@ async function creaPdf(m) {
     let sz = size;
     while (sz > 6 && font.widthOfTextAtSize(testo, sz) > largCampo - 2) sz -= 0.5;
     // nei campi con barre (date "__/__/__") copre le barre sopra la riga; le lineette restano come sottolineatura
-    if (c.t && /[^_\s]/.test(c.t))
-      pg.drawRectangle({ x: c.x + 1, y: base - 0.4, width: Math.max(4, largCampo - 1.5), height: size * 1.0, color: rgb(1, 1, 1) });
+    if (c.t && /[^_\s]/.test(c.t)) {
+      const anno = /\d/.test(c.t);   // c'era un anno stampato: lo copre tutto
+      pg.drawRectangle({ x: c.x + (anno ? -1 : 1), y: base - 0.4, width: Math.max(4, largCampo + (anno ? 3 : -1.5)), height: size * 1.0, color: rgb(1, 1, 1) });
+    }
     pg.drawText(testo, { x: c.x + 3, y: base + 1, size: sz, font, color: nero });
   }
   // moduli preparati dal telefono: le caselle le spunta l'app
