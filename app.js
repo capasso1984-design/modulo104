@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "1.0";
+const VERSIONE = "1.1";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -403,3 +403,73 @@ costruisciAnag(); costruisciImpost(); costruisciCompila();
 caricaPacchetto().then(aggiornaAvvisi);
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 window.M104 = { creaPdf, calcolaValori, leggiMese }; // per i test
+
+// ---------------------------------------------------------------- condivisione e installazione
+const LINK_APP = location.origin + location.pathname.replace(/index\.html$/, "");
+const TESTO_INVITO = "Ti mando l'app Modulo 104: compila e invia il modulo mensile dei permessi L.104/92 dal telefono. " +
+  "Apri il link e segui le istruzioni per aggiungerla alla schermata Home:";
+async function condividiApp(conModulo) {
+  const testo = `${TESTO_INVITO}\n${LINK_APP}`;
+  if (conModulo) {
+    if (!pacchetto) { toast("Prima carica il file del modulo nella scheda Modulo"); mostra("s-modulo"); return; }
+    const nomeFile = `Modulo104 - ${String(pacchetto.nome || "modulo").replace(/[<>:"/\|?*]/g, "-")}.m104`;
+    const file = new File([JSON.stringify(pacchetto)], nomeFile, { type: "application/octet-stream" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: "Modulo 104", text: testo + "\n\nIn allegato il file del modulo: salvalo e caricalo nell'app, scheda Modulo." });
+        return;
+      } catch (e) { if (e.name === "AbortError") return; }
+    }
+    // il telefono non può condividere file: lo scarica, poi si condivide il link
+    const url = URL.createObjectURL(file), a = document.createElement("a");
+    a.href = url; a.download = nomeFile; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    toast("File del modulo salvato: allegalo tu al messaggio");
+  }
+  if (navigator.share) {
+    try { await navigator.share({ title: "Modulo 104", text: TESTO_INVITO, url: LINK_APP }); return; }
+    catch (e) { if (e.name === "AbortError") return; }
+  }
+  if (await copia(testo)) toast("Link copiato ✔ Incollalo in WhatsApp, email o SMS");
+}
+$("b-condividi").addEventListener("click", () => condividiApp(false));
+$("b-condividi-modulo").addEventListener("click", () => condividiApp(true));
+$("b-condividi-testa").addEventListener("click", () => condividiApp(false));
+
+const installata = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const ua = navigator.userAgent;
+const iOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+const browserInterno = /FBAN|FBAV|Instagram|Line\/|GSA\/|WhatsApp|Telegram/i.test(ua);
+const iOSnonSafari = iOS && (/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua) || browserInterno || !/Safari/.test(ua));
+let promptInstalla = null;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); promptInstalla = e; mostraInstalla(); });
+window.addEventListener("appinstalled", () => { $("installa").style.display = "none"; toast("App installata ✔ La trovi nella schermata Home"); });
+
+function mostraInstalla() {
+  const box = $("installa");
+  if (installata || mem.get("m104_no_installa", false)) { box.style.display = "none"; return; }
+  let h = '<h2>📲 Installa l\'app sul telefono</h2><p class="muted">Così avrai l\'icona "Modulo 104" nella schermata Home e funzionerà anche senza internet.</p>';
+  if (iOS && iOSnonSafari) {
+    h += `<ol><li>Questa pagina è aperta dentro un'altra app. Tocca <b>⋯</b> o <b>⬆️</b> e scegli <b>"Apri in Safari"</b>.</li>
+      <li>Oppure copia il link e incollalo in Safari: <button class="btn sec" id="b-copia-link" style="margin-top:6px">Copia il link</button></li>
+      <li>In Safari segui le istruzioni che compariranno.</li></ol>`;
+  } else if (iOS) {
+    h += `<ol><li>Tocca il pulsante <span class="ico-share">⬆️ Condividi</span> in basso (o in alto) in Safari.</li>
+      <li>Scorri e tocca <b>"Aggiungi alla schermata Home"</b> ➕.</li>
+      <li>Tocca <b>"Aggiungi"</b> in alto a destra. Fatto: apri l'app dall'icona.</li></ol>`;
+  } else if (promptInstalla) {
+    h += '<button class="btn" id="b-installa">Installa l\'app</button>';
+  } else {
+    h += `<ol><li>Tocca il menu <b>⋮</b> in alto a destra di Chrome.</li>
+      <li>Tocca <b>"Installa app"</b> oppure <b>"Aggiungi a schermata Home"</b>.</li>
+      <li>Conferma: l'icona compare nella schermata Home.</li></ol>`;
+  }
+  h += '<p class="muted">Ti hanno mandato anche un file .m104? Salvalo (su iPhone in "File") e caricalo nella scheda <b>Modulo</b>.</p>';
+  h += '<button class="btn sec" id="b-no-installa">Più tardi</button>';
+  box.innerHTML = h;
+  box.style.display = "block";
+  $("b-no-installa").addEventListener("click", () => { mem.set("m104_no_installa", true); box.style.display = "none"; });
+  $("b-installa")?.addEventListener("click", async () => { promptInstalla.prompt(); await promptInstalla.userChoice; promptInstalla = null; mostraInstalla(); });
+  $("b-copia-link")?.addEventListener("click", async () => { if (await copia(LINK_APP)) toast("Link copiato ✔ Incollalo in Safari"); });
+}
+mostraInstalla();
