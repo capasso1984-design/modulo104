@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.6";
+const VERSIONE = "3.7";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -799,9 +799,13 @@ function registra(persona, m) {
   if (!persona) return;
   const a = archivio(); a[persona.id] = a[persona.id] || {};
   a[persona.id][`${m.anno}-${pad2(m.mese)}`] = { giorni: m.giorni || [], orari: m.orari || [], nessuno: !!nonChiedo, motivo: nonChiedo ? m.motivo : "", creato: fmt(new Date()), nome: persona.nome };
+  const tu = mem.get("m104_turni", {})[`${m.anno}-${pad2(m.mese)}`];
+  if (tu && tu.length) a[persona.id][`${m.anno}-${pad2(m.mese)}`].turni = tu;   // facoltativi: solo se segnati
   mem.set("m104_archivio", a);
 }
 let arcAnno = new Date().getFullYear();
+// turni del mese (facoltativi): quelli segnati sul calendario, oppure quelli salvati col modulo
+function turniArchivio(r, anno, mese) { const t = mem.get("m104_turni", {})[`${anno}-${pad2(mese)}`]; return (t && t.length ? t : (r && r.turni) || []).slice().sort((x, y) => x - y); }
 function disegnaArchivio() {
   const ps = persone(), a = archivio();
   // anche persone tolte dall'anagrafica ma con giorni in archivio
@@ -824,6 +828,8 @@ function disegnaArchivio() {
       badge = `<span class="badge${r.giorni.length === 3 ? " ok" : ""}">${r.giorni.length} / 3 giorni</span>`;
       corpo = `<div class="chips">${r.giorni.map((d) => `<span class="chip">${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${pad2(d)}/${pad2(i + 1)}</span>`).join("")}${r.orari.map(([g, x, y]) => `<span class="chip">${pad2(g)}/${pad2(i + 1)} ${esc(x)}-${esc(y)}</span>`).join("")}</div>`;
     }
+    const tu = turniArchivio(r, arcAnno, i + 1);
+    if (tu.length) corpo += `<small class="arc-turni"><b>Turni:</b> ${tu.map((d) => `${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${d}`).join(" · ")}</small>`;
     const cancella = r ? `<button class="shub__azione" data-cancella="${arcAnno}-${pad2(i + 1)}" aria-label="Cancella ${nome} dall'archivio" title="Cancella">✕</button>` : "";
     return `<div class="arc-mese"><div class="arc-testa"><b>${nome}</b><span style="display:flex;gap:6px;align-items:center">${badge}${cancella}</span></div>${corpo}${r ? `<small class="muted">Modulo creato il ${esc(r.creato)}</small>` : ""}</div>`;
   }).join("");
@@ -860,8 +866,10 @@ $("b-arc-pdf").addEventListener("click", async () => {
       det = r.giorni.map((d) => `${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${pad2(d)}/${pad2(i + 1)}`).join(", ") + (r.orari.length ? (r.giorni.length ? "; " : "") + r.orari.map(([g, a, b]) => `${pad2(g)}/${pad2(i + 1)} ${a}-${b}`).join(", ") : "");
     }
     t(nome, 62, y); t(n, 165, y); t(det, 205, y, { size: 10, color: r ? nero : grigio });
-    pg.drawLine({ start: { x: 56, y: y - 6 }, end: { x: 539, y: y - 6 }, thickness: 0.4, color: rgb(0.8, 0.83, 0.88) });
-    y -= 24;
+    const tu = turniArchivio(r, arcAnno, i + 1), extra = tu.length ? 12 : 0;
+    if (extra) t("Turni: " + tu.map((d) => `${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${d}`).join(", "), 205, y - 12, { size: 8.5, color: rgb(0.06, 0.45, 0.36) });
+    pg.drawLine({ start: { x: 56, y: y - 6 - extra }, end: { x: 539, y: y - 6 - extra }, thickness: 0.4, color: rgb(0.8, 0.83, 0.88) });
+    y -= 24 + extra;
   });
   t(`Totale giorni nell'anno: ${tot}`, 56, y - 6, { font: fb, size: 12 });
   t(`Documento generato il ${fmt(new Date())} con l'app Modulo 104 (promemoria personale, non sostituisce il modulo ufficiale).`, 56, 60, { size: 8, color: grigio });
