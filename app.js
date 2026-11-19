@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.11";
+const VERSIONE = "3.12";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -63,7 +63,7 @@ function mostra(id) {
   if (id === "s-home") aggiornaAvvisi();
   if (id === "s-impost") anteprimaEmail();
   if (id === "s-archivio") disegnaArchivio();
-  if (id === "s-compila") { costruisciPersonaSel(); passo(1); }
+  if (id === "s-compila") { costruisciPersonaSel(); if (apriPasso2) { apriPasso2 = false; caricaMeseDaArchivio(); passo(2); } else passo(1); }
   if ("s-" + location.hash.slice(1) !== id && !(id === "s-home" && !location.hash)) history.replaceState(null, "", id === "s-home" ? location.pathname : "#" + id.slice(2));
 }
 
@@ -100,6 +100,7 @@ function costruisciAnag() {
     box.append(l, i);
   }
   $("an-bloccaWE").checked = a.bloccaWE !== false;
+  $("an-g151").value = a.g151_iniziali || ""; $("an-g151vuoto").checked = !!a.g151_vuoto;
   disegnaPersone(a.persone.length ? a.persone : [{ id: "p1", nome: "", parentela: "" }]);
   anteprimaNome();
   mostraFirma();
@@ -137,6 +138,7 @@ $("b-salva-anag").addEventListener("click", () => {
   const a = mem.get("m104_anag", {});
   for (const [k] of ANAG) a[k] = $("an-" + k).value.trim();
   a.persone = leggiPersone(); a.bloccaWE = $("an-bloccaWE").checked;
+  a.g151_iniziali = Math.max(0, parseInt($("an-g151").value, 10) || 0); a.g151_vuoto = $("an-g151vuoto").checked;
   delete a.assistito; delete a.parentela;
   if (mem.set("m104_anag", a)) { toast("Anagrafica salvata ✔"); costruisciPersonaSel(); vai("s-home"); }
 });
@@ -392,7 +394,8 @@ $("b-salva-imp").addEventListener("click", () => {
 // calendario: si toccano i giorni; i giorni consecutivi diventano un unico periodo "dal… al…"
 const NOMI_G = ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"];
 const BREVI_G = ["dom", "lun", "mar", "mer", "gio", "ven", "sab"];
-let cal = { mese: 0, anno: 0, sel: new Set(), modo: "104" };
+let cal = { mese: 0, anno: 0, sel: new Set(), sel151: new Set(), modo: "104" };
+const ha151 = () => !!(window.M151 && window.M151.attuale());
 function pasqua(y) {   // algoritmo di Meeus
   const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
   const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
@@ -433,7 +436,7 @@ function cambiaMese(dx) {
 // se il mese è già in archivio per questa persona, ripropone i giorni
 function caricaMeseDaArchivio() {
   const p = personaCorrente(), r = p && registro(p.id, cal.anno, cal.mese);
-  cal.sel = new Set(r && r.giorni ? r.giorni : []);
+  cal.sel = new Set(r && r.giorni ? r.giorni : []); cal.sel151 = new Set(r && r.g151 ? r.g151 : []);
   $("cal-err").hidden = true; $("cal-avv").hidden = true;
   disegnaCal();
   if (r) { $("cal-avv").hidden = false; $("cal-avv").textContent = r.nessuno ? "Per questo mese avevi già fatto il modulo «nessun permesso». Se ne crei uno nuovo, lo sostituisce." : "Questi sono i giorni già registrati per questo mese: se crei un nuovo modulo, li sostituisce."; }
@@ -453,11 +456,12 @@ function disegnaCal() {
   for (let d = 1; d <= nGiorni; d++) {
     const dt = new Date(cal.anno, cal.mese - 1, d), wd = dt.getDay(), we = wd === 0 || wd === 6, fe = fest[`${cal.mese}-${d}`];
     const b = document.createElement("button"); b.type = "button";
-    const tu = turni.has(d), sc = cal.modo !== "turni" && cal.sel.has(d), premuto = cal.modo === "turni" ? tu : sc;
-    const et = sc ? "104" : tu ? "turno" : "";
+    const tu = turni.has(d), sc = cal.modo !== "turni" && cal.sel.has(d), s5 = cal.modo !== "turni" && cal.sel151.has(d);
+    const premuto = cal.modo === "turni" ? tu : cal.modo === "151" ? s5 : sc;
+    const et = sc ? "104" : s5 ? "151" : tu ? "turno" : "";
     b.innerHTML = `<span class="cal-n">${d}</span>${et ? `<small class="cal-et">${et}</small>` : ""}`;
-    b.className = "cal-g" + (we ? " we" + (blocco ? " bloc" : "") : "") + (fe ? " fe" : "") + (sc ? " sel" : "") + (tu ? " tu" : "") + (dt.toDateString() === oggi.toDateString() ? " oggi" : "");
-    b.setAttribute("aria-label", `${NOMI_G[wd]} ${d} ${MESI[cal.mese - 1]}${fe ? ", festivo" : ""}${tu ? ", turno di servizio" : ""}${cal.sel.has(d) ? ", scelto per la 104" : ""}`);
+    b.className = "cal-g" + (we ? " we" + (blocco ? " bloc" : "") : "") + (fe ? " fe" : "") + (sc ? " sel" : "") + (s5 ? " s151" : "") + (tu ? " tu" : "") + (dt.toDateString() === oggi.toDateString() ? " oggi" : "");
+    b.setAttribute("aria-label", `${NOMI_G[wd]} ${d} ${MESI[cal.mese - 1]}${fe ? ", festivo" : ""}${tu ? ", turno di servizio" : ""}${sc ? ", scelto per la 104" : ""}${s5 ? ", scelto per la 151" : ""}`);
     b.setAttribute("aria-pressed", premuto ? "true" : "false");
     b.addEventListener("click", () => toccaGiorno(d));
     g.append(b);
@@ -473,11 +477,19 @@ function salvaTurni(set) {
   mem.set("m104_turni", t);
 }
 function modoCal(m) {
+  if (m === "104" && nonChiedo && ha151()) m = "151";   // niente 104 questo mese: restano i giorni 151
   cal.modo = m;
-  $("cal-titolo").textContent = m === "turni" ? "I tuoi turni di servizio" : "Giorni di permesso 104";
-  $("cal-istr").innerHTML = m === "turni" ? "Tocca i giorni in cui monti il servizio. <b>Facoltativo</b>: se non ti serve, vai avanti." : "Tocca i giorni che vuoi prendere (massimo 3 al mese). I tuoi turni sono quelli verdi in rilievo.";
+  $("cal-titolo").textContent = m === "turni" ? "I tuoi turni di servizio" : m === "151" ? "Giorni di congedo 151" : "Giorni di permesso 104";
+  $("cal-istr").innerHTML = m === "turni" ? "Tocca i giorni in cui monti il servizio. <b>Facoltativo</b>: se non ti serve, vai avanti."
+    : m === "151" ? "Tocca i giorni di congedo 151 (viola). I giorni 104 restano in blu, i turni in verde."
+    : "Tocca i giorni che vuoi prendere (massimo 3 al mese). I tuoi turni sono quelli verdi in rilievo.";
+  $("sw-151").style.display = ha151() && !nonChiedo ? "" : "none";
+  document.querySelectorAll(".solo-151").forEach((e) => (e.style.display = ha151() ? "" : "none"));
+  for (const [id, v] of [["cal-m104", "104"], ["cal-m151", "151"]]) { $(id).classList.toggle("on", m === v); $(id).setAttribute("aria-checked", String(m === v)); }
   $("cal-err").hidden = true; $("cal-avv").hidden = true; disegnaCal();
 }
+$("cal-m104").addEventListener("click", () => modoCal("104"));
+$("cal-m151").addEventListener("click", () => modoCal("151"));
 // procedura guidata: 1 turni (facoltativo) -> 2 giorni 104 -> 3 PDF
 function passo(n) {
   const s = $("s-compila"); s.classList.toggle("passo1", n === 1); s.classList.toggle("passo2", n === 2);
@@ -495,6 +507,16 @@ function toccaGiorno(d) {
     const t = turniMese(); if (t.has(d)) t.delete(d); else t.add(d);
     salvaTurni(t); disegnaCal(); return;
   }
+  const Gg = NOMI_G[wd][0].toUpperCase() + NOMI_G[wd].slice(1);
+  if (cal.modo === "151") {
+    if (cal.sel151.has(d)) { cal.sel151.delete(d); disegnaCal(); return; }
+    if (cal.sel.has(d)) { err.hidden = false; err.textContent = `${Gg} ${d} è già un giorno 104: lo stesso giorno non può essere anche 151.`; return; }
+    cal.sel151.add(d); disegnaCal();
+    if (turniMese().has(d)) { avv.hidden = false; avv.textContent = `Attenzione: ${NOMI_G[wd]} ${d} è un tuo turno di servizio. Mettendo la 151 sul turno, quel giorno non vai al lavoro.`; }
+    else if (we || fe) { avv.hidden = false; avv.textContent = `${Gg} ${d}: ${fe ? "festivo (" + fe + ")" : "fine settimana"}, conta come giorno di congedo.`; }
+    return;
+  }
+  if (cal.sel151.has(d)) { err.hidden = false; err.textContent = `${Gg} ${d} è già un giorno 151: lo stesso giorno non può essere anche 104.`; return; }
   if (cal.sel.has(d)) { cal.sel.delete(d); disegnaCal(); return; }
   if (we && anag().bloccaWE !== false) {
     err.hidden = false; err.textContent = `${NOMI_G[wd][0].toUpperCase() + NOMI_G[wd].slice(1)} ${d}: sabato e domenica sono bloccati (puoi sbloccarli in Anagrafica → Impostazioni).`;
@@ -520,8 +542,9 @@ function impostaModo(no) {
   $("modo-si").setAttribute("aria-checked", String(!no)); $("modo-no").setAttribute("aria-checked", String(no));
   document.querySelectorAll("#s-compila .solo-si").forEach((e) => (e.style.display = no ? "none" : ""));
   document.querySelectorAll("#s-compila .solo-no").forEach((e) => (e.style.display = no ? "" : "none"));
+  if (no && ha151()) $("card-cal").style.display = "";
   if (no) mostraMotivo();
-  totale();
+  if ($("s-compila").classList.contains("passo2")) modoCal("104"); else totale();
 }
 // motivo: si vede in sola lettura; con la matita si modifica e si salva per le volte successive
 function motivoSalvato() { return anag().motivo_def || MOTIVO_PREDEFINITO; }
@@ -548,7 +571,8 @@ function leggiMese() {
   const mese = cal.mese, anno = cal.anno;
   const dc = $("datacomp").value;
   const data = dc ? dc.split("-").reverse().join("/") : fmt(new Date());
-  if (nonChiedo) return { mese, anno, daDate: false, periodi: [], orari: [], data, motivo: $("motivo").value.trim() || anag().motivo_def || MOTIVO_PREDEFINITO };
+  const g151 = ha151() ? [...cal.sel151].sort((a, b) => a - b) : [];
+  if (nonChiedo) return { mese, anno, daDate: false, periodi: [], orari: [], data, motivo: $("motivo").value.trim() || anag().motivo_def || MOTIVO_PREDEFINITO, giorni: [], g151 };
   const orari = [];
   for (let i = 1; i <= N_ORARI; i++) {
     const g = $(`og${i}g`).value; if (!g) continue;
@@ -556,7 +580,7 @@ function leggiMese() {
     if (d.m !== mese || d.y !== anno) throw new Error(`Permesso orario ${i}: la data non è in ${MESI[mese - 1]} ${anno}`);
     orari.push([d.d, $(`og${i}d`).value, $(`og${i}a`).value]);
   }
-  return { mese, anno, daDate: true, periodi: periodiDa(cal.sel), orari, data, motivo: "", giorni: [...cal.sel].sort((a, b) => a - b) };
+  return { mese, anno, daDate: true, periodi: periodiDa(cal.sel), orari, data, motivo: "", giorni: [...cal.sel].sort((a, b) => a - b), g151 };
 }
 function calcolaValori(m) {
   const v = { mese: MESI[m.mese - 1], anno: String(m.anno), mese_anno: `${MESI[m.mese - 1]} ${m.anno}`, data_compilazione: m.data, motivo: m.motivo };
@@ -579,10 +603,14 @@ function totale() {
   const n = cal.sel.size, c = $("contatore");
   c.textContent = `${n} / 3 giorni`;
   c.className = "contatore solo-p2" + (n > 3 ? " oltre" : n === 3 ? " ok" : "");
+  if (cal.modo === "151") { c.textContent = `151: ${cal.sel151.size} ${cal.sel151.size === 1 ? "giorno" : "giorni"}`; c.className = "contatore solo-p2 c151"; }
   if (n > 3 && cal.modo !== "turni") { $("cal-err").hidden = false; $("cal-err").textContent = `Hai superato il limite: ${n} giorni su 3. Togline ${n - 3}.`; }
   const p = periodiDa(cal.sel), mm = pad2(cal.mese);
-  $("cal-periodi").innerHTML = p.length ? "<b>Nel modulo:</b> " + p.map(([a, b]) => `dal ${pad2(a)}/${mm} al ${pad2(b)}/${mm}`).join(" · ") : "";
-  $("b-crea").disabled = !nonChiedo && n > 3;
+  const p5 = ha151() ? periodiDa(cal.sel151) : [], max5 = ha151() ? M151.attuale().righe : 0;
+  $("cal-periodi").innerHTML = (p.length ? "<b>Nel modulo 104:</b> " + p.map(([a, b]) => `dal ${pad2(a)}/${mm} al ${pad2(b)}/${mm}`).join(" · ") : "")
+    + (p5.length ? `${p.length ? "<br>" : ""}<b style="color:#5b21b6">Nel modulo 151 (${cal.sel151.size} ${cal.sel151.size === 1 ? "giorno" : "giorni"}):</b> ` + p5.map(([a, b]) => `dal ${pad2(a)}/${mm} al ${pad2(b)}/${mm}`).join(" · ") : "");
+  if (p5.length > max5 && cal.modo !== "turni") { $("cal-err").hidden = false; $("cal-err").textContent = `Il tuo modulo 151 ha ${max5} righe: hai ${p5.length} periodi. Unisci qualche giorno o togline.`; }
+  $("b-crea").disabled = (!nonChiedo && n > 3) || p5.length > max5;
 }
 function riempi(tpl, dati) { return String(tpl || "").replace(/\{(\w+)\}/g, (m, k) => (dati[k] !== undefined ? dati[k] : m)); }
 function spuntata(regola, v) {
@@ -690,16 +718,18 @@ async function creaPdf(m, pacchetto = window.M104 && window.M104.attuale()) {
 }
 
 $("b-crea").addEventListener("click", () => {
-  if (!pacchetto) { toast("Prima carica il modulo da compilare"); vai("s-modulo"); return; }
+  const solo151 = ha151() && cal.sel151.size && !nonChiedo && !cal.sel.size && !leggiOrariPresenti();
+  if (!pacchetto && !solo151) { toast("Prima carica il modulo da compilare"); vai("s-modulo"); return; }
   if (!anag().cognome) { toast("Prima compila l'anagrafica"); vai("s-anag"); return; }
   const persona = personaCorrente();
   if (!persona) { toast("Aggiungi la persona assistita in Anagrafica"); vai("s-anag"); return; }
   let m;
   try { m = leggiMese(); } catch (e) { toast(e.message, 5000); return; }
-  if (!nonChiedo && !m.periodi.length && !m.orari.length) { toast("Tocca i giorni nel calendario, oppure scegli «Non chiedo permessi»", 5000); return; }
+  if (!nonChiedo && !m.periodi.length && !m.orari.length && !m.g151.length) { toast("Tocca i giorni nel calendario, oppure scegli «Non chiedo permessi»", 5000); return; }
   if (!nonChiedo && cal.sel.size > 3) { toast("Massimo 3 giorni al mese: togline qualcuno"); return; }
   apriConferma(m, persona);
 });
+function leggiOrariPresenti() { for (let i = 1; i <= N_ORARI; i++) if ($(`og${i}g`).value) return true; return false; }
 // finestra di conferma: elenco dei giorni con il nome del giorno, prima di creare il PDF
 let daConfermare = null;
 function apriConferma(m, persona) {
@@ -719,6 +749,16 @@ function apriConferma(m, persona) {
     }).join("") + m.orari.map(([g, a, b]) => `<div><b style="text-transform:capitalize">${NOMI_G[new Date(m.anno, m.mese - 1, g).getDay()]} (orario)</b><span>${pad2(g)}/${mm} · ${esc(a)}-${esc(b)}</span></div>`).join("") + "</div>";
     if (m.periodi.length) h += `<p class="muted">Nel modulo: ${m.periodi.map(([a, b]) => `dal ${pad2(a)}/${mm}/${m.anno} al ${pad2(b)}/${mm}/${m.anno}`).join(" · ")}</p>`;
   }
+  const fa104 = nonChiedo || m.periodi.length || m.orari.length;
+  if (!fa104) { h = ""; $("cf-titolo").textContent = "Solo congedo 151"; }
+  if (m.g151.length) {
+    const gia = M151.giaFruiti(m.mese, m.anno), vuoto = !!anag().g151_vuoto;
+    h += `<p style="margin-top:.6rem"><b style="color:#5b21b6">Congedo 151: ${m.g151.length} ${m.g151.length === 1 ? "giorno" : "giorni"}</b></p><div class="cf-lista">` + m.g151.map((d) => {
+      const wd = new Date(m.anno, m.mese - 1, d).getDay(), avv = turniC.has(d) ? " (turno di servizio)" : "";
+      return `<div><b class="${avv ? "avv" : ""}"><span style="text-transform:capitalize">${NOMI_G[wd]}</span>${avv}</b><span>${pad2(d)}/${mm}/${m.anno}</span></div>`;
+    }).join("") + `</div><p class="muted">Nel modulo 151: già fruiti ${vuoto ? "<b>lasciato vuoto</b>" : "<b>" + gia + "</b> giorni"} · ${periodiDa(m.g151).map(([a, b]) => `dal ${pad2(a)}/${mm} al ${pad2(b)}/${mm}`).join(" · ")}</p>`;
+  }
+  $("cf-si").textContent = fa104 && m.g151.length ? "Crea i 2 PDF" : "Crea PDF";
   if (!mem.get("m104_firma", null)) h += `<p class="err">Attenzione: non hai ancora salvato la firma, il PDF sarà senza firma.</p>`;
   $("cf-corpo").innerHTML = h;
   $("conferma").hidden = false;
@@ -728,11 +768,20 @@ $("cf-si").addEventListener("click", async () => {
   const m = daConfermare; $("conferma").hidden = true; daConfermare = null; if (!m) return;
   const b = $("b-crea"); b.disabled = true; b.textContent = "Creo il PDF…";
   try {
-    ultimo = await creaPdf(m);
+    const fa104 = nonChiedo || m.periodi.length || m.orari.length;
+    const p104 = fa104 ? await creaPdf(m) : null, p151 = m.g151.length ? await M151.crea(m) : null;
+    const f = fissi(), mesea = `${MESI[m.mese - 1]} ${m.anno}`;
+    if (p104 && p151) ultimo = Object.assign({}, p104, { oggetto: `${p104.oggetto} + congedo 151 (${p151.periodi})`, testo: p104.testo.replace(/\n\nCordiali saluti/, `\n\nIn allegato anche la richiesta di congedo straordinario art. 42 D.Lgs. 151/2001 (${p151.periodi}).\n\nCordiali saluti`), extra: [p151] });
+    else if (p104) ultimo = Object.assign({}, p104, { extra: [] });
+    else ultimo = Object.assign({}, p151, { oggetto: `${f.grado_nome} - Congedo straordinario art. 42 D.Lgs. 151/2001 ${mesea} - ${p151.periodi}`,
+      testo: `Buongiorno,\n\nin allegato la richiesta di congedo straordinario art. 42 D.Lgs. 151/2001 relativa al mese di ${mesea} (${p151.periodi}).\n\nCordiali saluti\n${f.grado_nome}`, extra: [] });
     registra(personaCorrente(), m);
     $("nomepdf").textContent = ultimo.nome + " · " + ultimo.periodi;
     $("risultato").style.display = "block"; $("ps2").className = "fatto"; $("ps3").className = "on";
     anteprima(ultimo.blob);
+    const due = !!(p104 && p151);
+    $("nomepdf151").style.display = $("anteprima151").style.display = due ? "" : "none";
+    if (due) { $("nomepdf151").textContent = p151.nome + " · " + p151.periodi; anteprimaIn($("anteprima151"), p151.blob); }
     const st = mem.get("m104_storico", []);
     st.unshift({ nome: ultimo.nome, periodi: ultimo.periodi, quando: fmt(new Date()) });
     mem.set("m104_storico", st.slice(0, 30));
@@ -751,9 +800,10 @@ async function copia(t) {
 async function inviaPdf(perEmail) {
   if (!ultimo) return;
   const file = new File([ultimo.blob], ultimo.nome, { type: "application/pdf" });
+  const files = [file, ...(ultimo.extra || []).map((x) => new File([x.blob], x.nome, { type: "application/pdf" }))];
   if (perEmail) await copia(ultimo.oggetto);
-  const dati = perEmail ? { files: [file], title: ultimo.oggetto, text: ultimo.testo } : { files: [file], title: ultimo.nome };
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+  const dati = perEmail ? { files, title: ultimo.oggetto, text: ultimo.testo } : { files, title: ultimo.nome };
+  if (navigator.canShare && navigator.canShare({ files })) {
     try { await navigator.share(dati); }
     catch (e) { if (e.name !== "AbortError") toast("Invio non riuscito: usa «Apri / salva PDF»"); }
   } else { toast("Questo browser non può allegare file: apro il PDF da salvare"); apriPdf(); }
@@ -768,6 +818,10 @@ function apriPdf() {
 }
 $("b-apri").addEventListener("click", apriPdf);
 $("anteprima").addEventListener("click", apriPdf);
+$("anteprima151").addEventListener("click", () => {
+  const x = ultimo && (ultimo.extra || [])[0]; if (!x) return;
+  const url = URL.createObjectURL(x.blob), a = document.createElement("a"); a.href = url; a.download = x.nome; a.target = "_blank"; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+});
 async function caricaPdfjs() {
   if (window.pdfjsLib) return;
   await new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "lib/pdf.min.js"; s.onload = ok; s.onerror = ko; document.head.append(s); });
@@ -809,11 +863,17 @@ function registro(pid, anno, mese) { const a = archivio(); return (a[pid] || {})
 function registra(persona, m) {
   if (!persona) return;
   const a = archivio(); a[persona.id] = a[persona.id] || {};
-  a[persona.id][`${m.anno}-${pad2(m.mese)}`] = { giorni: m.giorni || [], orari: m.orari || [], nessuno: !!nonChiedo, motivo: nonChiedo ? m.motivo : "", creato: fmt(new Date()), nome: persona.nome };
-  const tu = mem.get("m104_turni", {})[`${m.anno}-${pad2(m.mese)}`];
-  if (tu && tu.length) a[persona.id][`${m.anno}-${pad2(m.mese)}`].turni = tu;   // facoltativi: solo se segnati
+  const k = `${m.anno}-${pad2(m.mese)}`, prima = a[persona.id][k];
+  if (fa104Di(m)) a[persona.id][k] = { giorni: m.giorni || [], orari: m.orari || [], nessuno: !!nonChiedo, motivo: nonChiedo ? m.motivo : "", creato: fmt(new Date()), nome: persona.nome };
+  // solo la 151: la parte 104 già registrata per questo mese resta com'era
+  else a[persona.id][k] = prima && !prima.solo151 ? Object.assign({}, prima) : { giorni: [], orari: [], nessuno: false, motivo: "", creato: fmt(new Date()), nome: persona.nome, solo151: true };
+  const e = a[persona.id][k];
+  if (m.g151 && m.g151.length) e.g151 = m.g151; else delete e.g151;
+  const tu = mem.get("m104_turni", {})[k];
+  if (tu && tu.length) e.turni = tu;   // facoltativi: solo se segnati
   mem.set("m104_archivio", a);
 }
+const fa104Di = (m) => !!(nonChiedo || (m.periodi && m.periodi.length) || (m.orari && m.orari.length));
 let arcAnno = new Date().getFullYear();
 // turni del mese (facoltativi): quelli segnati sul calendario, oppure quelli salvati col modulo
 function turniArchivio(r, anno, mese) { const t = mem.get("m104_turni", {})[`${anno}-${pad2(mese)}`]; return (t && t.length ? t : (r && r.turni) || []).slice().sort((x, y) => x - y); }
@@ -829,28 +889,51 @@ function disegnaArchivio() {
   const anni = new Set([new Date().getFullYear(), new Date().getFullYear() + 1, ...Object.keys(dati).map((k) => +k.slice(0, 4))]);
   $("arc-anni").innerHTML = [...anni].sort().map((y) => `<button class="pill${y === arcAnno ? " on" : ""}" data-anno="${y}">${y}</button>`).join("");
   $("arc-anni").querySelectorAll("[data-anno]").forEach((b) => b.addEventListener("click", () => { arcAnno = +b.dataset.anno; disegnaArchivio(); }));
-  let tot = 0, comp = 0;
+  let tot = 0, comp = 0, t151 = 0;
   $("arc-mesi").innerHTML = MESI.map((nome, i) => {
     const r = dati[`${arcAnno}-${pad2(i + 1)}`];
     let badge = '<span class="badge vuoto">Non compilato</span>', corpo = "";
-    if (r && r.nessuno) { comp++; badge = '<span class="badge no">Nessun permesso</span>'; corpo = `<small class="muted">Motivo: «${esc(r.motivo)}»</small>`; }
+    if (r && r.solo151) { comp++; badge = ""; }
+    else if (r && r.nessuno) { comp++; badge = '<span class="badge no">Nessun permesso</span>'; corpo = `<small class="muted">Motivo: «${esc(r.motivo)}»</small>`; }
     else if (r) {
       comp++; tot += r.giorni.length;
       badge = `<span class="badge${r.giorni.length === 3 ? " ok" : ""}">${r.giorni.length} / 3 giorni</span>`;
       corpo = `<div class="chips">${r.giorni.map((d) => `<span class="chip">${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${pad2(d)}/${pad2(i + 1)}</span>`).join("")}${r.orari.map(([g, x, y]) => `<span class="chip">${pad2(g)}/${pad2(i + 1)} ${esc(x)}-${esc(y)}</span>`).join("")}</div>`;
     }
+    if (r && r.g151 && r.g151.length) {
+      t151 += r.g151.length;
+      badge += `<span class="badge b151">151: ${r.g151.length} gg</span>`;
+      corpo += `<div class="chips">${r.g151.map((d) => `<span class="chip c151">151 · ${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${pad2(d)}/${pad2(i + 1)}</span>`).join("")}</div>`;
+    }
     const tu = turniArchivio(r, arcAnno, i + 1);
     if (tu.length) corpo += `<small class="arc-turni"><b>Turni:</b> ${tu.map((d) => `${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${d}`).join(" · ")}</small>`;
     const cancella = r ? `<button class="shub__azione" data-cancella="${arcAnno}-${pad2(i + 1)}" aria-label="Cancella ${nome} dall'archivio" title="Cancella">✕</button>` : "";
-    return `<div class="arc-mese"><div class="arc-testa"><b>${nome}</b><span style="display:flex;gap:6px;align-items:center">${badge}${cancella}</span></div>${corpo}${r ? `<small class="muted">Modulo creato il ${esc(r.creato)}</small>` : ""}</div>`;
+    const azioni = `<div class="arc-azioni"><button class="btn sec" data-apri="${i + 1}">📅 ${r ? "Vedi e modifica" : "Compila"} nel calendario</button></div>`;
+    return `<div class="arc-mese"><div class="arc-testa"><b>${nome}</b><span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">${badge}${cancella}</span></div>${corpo}${r ? `<small class="muted">Modulo creato il ${esc(r.creato)}</small>` : ""}${azioni}</div>`;
   }).join("");
   $("arc-mesi").querySelectorAll("[data-cancella]").forEach((b) => b.addEventListener("click", () => {
     if (!confirm("Cancellare questo mese dall'archivio? Il PDF già inviato non cambia.")) return;
     const ar = archivio(); delete (ar[pid] || {})[b.dataset.cancella]; mem.set("m104_archivio", ar); disegnaArchivio();
   }));
   $("arc-tot").textContent = String(tot); $("arc-mesi-n").textContent = `${comp} / 12`;
+  $("arc-mesi").querySelectorAll("[data-apri]").forEach((b) => b.addEventListener("click", () => apriMeseNelCalendario(pid, arcAnno, +b.dataset.apri)));
+  const a5 = anag(), usa151 = ha151() || t151 || a5.g151_iniziali;
+  $("arc-151").style.display = usa151 ? "" : "none";
+  if (usa151) {
+    const totF = M151.totaleFruito(), resta = Math.max(0, M151.MAX_GIORNI - totF);
+    $("arc-151").innerHTML = `<h2 style="margin:0;color:#5b21b6">Congedo 151</h2>
+      <p style="margin:.2rem 0"><b>${t151}</b> giorni nel ${arcAnno} · totale fruito <b>${totF}</b> su ${M151.MAX_GIORNI} · restano <b>${resta}</b></p>
+      <div class="c151-barra"><i style="width:${Math.min(100, (totF / M151.MAX_GIORNI) * 100).toFixed(1)}%"></i></div>
+      <small class="muted">Il totale comprende i ${parseInt(a5.g151_iniziali, 10) || 0} giorni già fruiti prima dell'app (Anagrafica).</small>`;
+  }
 }
 $("arc-persona").addEventListener("change", disegnaArchivio);
+let apriPasso2 = false;
+function apriMeseNelCalendario(pid, anno, mese) {
+  if (persone().find((p) => p.id === pid)) mem.set("m104_persona", pid);
+  cal.anno = anno; cal.mese = mese; apriPasso2 = true;
+  vai("s-compila");
+}
 // riepilogo dell'anno in PDF
 $("b-arc-pdf").addEventListener("click", async () => {
   const pid = $("arc-persona").value, dati = archivio()[pid] || {}, opt = $("arc-persona").selectedOptions[0];
@@ -867,7 +950,7 @@ $("b-arc-pdf").addEventListener("click", async () => {
   let y = 700;
   pg.drawRectangle({ x: 56, y: y - 4, width: 483, height: 20, color: rgb(0.92, 0.94, 0.98) });
   t("Mese", 62, y + 2, { font: fb }); t("Giorni", 150, y + 2, { font: fb }); t("Dettaglio", 205, y + 2, { font: fb });
-  y -= 22; let tot = 0;
+  y -= 22; let tot = 0, tot151 = 0;
   MESI.forEach((nome, i) => {
     const r = dati[`${arcAnno}-${pad2(i + 1)}`];
     let n = "-", det = "non compilato";
@@ -876,18 +959,48 @@ $("b-arc-pdf").addEventListener("click", async () => {
       n = String(r.giorni.length); tot += r.giorni.length;
       det = r.giorni.map((d) => `${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${pad2(d)}/${pad2(i + 1)}`).join(", ") + (r.orari.length ? (r.giorni.length ? "; " : "") + r.orari.map(([g, a, b]) => `${pad2(g)}/${pad2(i + 1)} ${a}-${b}`).join(", ") : "");
     }
+    if (r && r.solo151) { n = "-"; det = ""; }
+    if (r && r.g151 && r.g151.length) { tot151 += r.g151.length; det += (det ? "; " : "") + "151: " + r.g151.map((d) => `${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${pad2(d)}/${pad2(i + 1)}`).join(", "); }
     t(nome, 62, y); t(n, 165, y); t(det, 205, y, { size: 10, color: r ? nero : grigio });
     const tu = turniArchivio(r, arcAnno, i + 1), extra = tu.length ? 12 : 0;
     if (extra) t("Turni: " + tu.map((d) => `${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${d}`).join(", "), 205, y - 12, { size: 8.5, color: rgb(0.06, 0.45, 0.36) });
     pg.drawLine({ start: { x: 56, y: y - 6 - extra }, end: { x: 539, y: y - 6 - extra }, thickness: 0.4, color: rgb(0.8, 0.83, 0.88) });
     y -= 24 + extra;
   });
-  t(`Totale giorni nell'anno: ${tot}`, 56, y - 6, { font: fb, size: 12 });
+  t(`Totale giorni 104 nell'anno: ${tot}`, 56, y - 6, { font: fb, size: 12 });
+  if (tot151 || ha151()) t(`Congedo 151 nell'anno: ${tot151} giorni · totale fruito ${M151.totaleFruito()} su ${M151.MAX_GIORNI}`, 56, y - 22, { font: fb, size: 11, color: rgb(0.36, 0.13, 0.71) });
   t(`Documento generato il ${fmt(new Date())} con l'app Modulo 104 (promemoria personale, non sostituisce il modulo ufficiale).`, 56, 60, { size: 8, color: grigio });
   const bytes = await doc.save(), nomeFile = `Riepilogo permessi 104 ${arcAnno} - ${chi.replace(/[<>:"/\\|?*]/g, "-")}.pdf`;
   const file = new File([bytes], nomeFile, { type: "application/pdf" });
   if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: nomeFile }); return; } catch (e) { if (e.name === "AbortError") return; } }
   const url = URL.createObjectURL(file), a = document.createElement("a"); a.href = url; a.download = nomeFile; a.target = "_blank"; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+});
+
+// ---------------------------------------------------------------- modulo 151 (facoltativo)
+function mostra151() {
+  const M = window.M151 && M151.attuale();
+  $("stato-151").className = "stato-mod " + (M ? "ok" : "attesa");
+  $("stato-151").innerHTML = M ? `✔ <b>Modulo 151 caricato</b><br>«${esc(M.nome)}» · caricato il ${esc(M.caricato)} · ${M.righe} righe per i periodi${M.tot ? "" : " · <b>non trovo la riga «già fruito di numero giorni»</b>"}`
+    : "Nessun modulo 151: se non usi il congedo 151 lascia così.";
+  $("b-vedi-151").style.display = $("b-togli-151").style.display = M ? "" : "none";
+  $("anteprima-151").style.display = "none";
+}
+function pronto151() { mostra151(); if ($("s-compila").classList.contains("on")) modoCal(cal.modo); }
+$("file-151").addEventListener("change", async (e) => {
+  const file = e.target.files[0]; e.target.value = ""; if (!file) return;
+  try { await M151.salva(file); toast("Modulo 151 caricato ✔"); mostra151(); $("b-vedi-151").click(); }
+  catch (err) { toast(err.message, 6000); }
+});
+$("b-vedi-151").addEventListener("click", async () => {
+  const box = $("anteprima-151"); box.style.display = ""; box.innerHTML = '<p class="muted">Preparo l’anteprima…</p>';
+  try {
+    const o = new Date(), r = await M151.crea({ mese: cal.mese || o.getMonth() + 1, anno: cal.anno || o.getFullYear(), g151: [], data: fmt(o) });
+    anteprimaIn(box, r.blob);
+  } catch (err) { box.innerHTML = `<p class="err">${esc(err.message)}</p>`; }
+});
+$("b-togli-151").addEventListener("click", async () => {
+  if (!confirm("Togliere il modulo 151? I giorni 151 in archivio restano salvati.")) return;
+  await M151.togli(); mostra151(); toast("Modulo 151 tolto");
 });
 
 // ---------------------------------------------------------------- avvio

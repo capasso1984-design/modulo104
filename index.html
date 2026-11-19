@@ -152,6 +152,10 @@ body.bloccata main{visibility:hidden}
 .passi span{text-align:center;font-size:.8rem;font-weight:800;color:var(--sec,#4d5e78);background:rgba(var(--pri-rgb),.07);border-radius:99px;padding:.4rem .2rem}
 .passi span.on{background:var(--pri);color:#fff}.passi span.fatto{background:#dff3e4;color:#1e6b33}
 .btn-turni{margin-top:0;padding:.6rem}
+.cal-g.s151{background:#6d28d9;color:#fff;border-color:#6d28d9}.cal-g.s151.tu{background:#c2410c;border-color:#c2410c;color:#fff;transform:translateY(-2px)}
+.lg-151{background:#6d28d9}.contatore.c151{background:#ede4fb;color:#5b21b6}.chip.c151{background:#ede4fb;color:#5b21b6}.badge.b151{background:#ede4fb;color:#5b21b6}
+.arc-azioni{display:flex;gap:8px}.arc-azioni .btn{margin-top:.2rem;padding:.55rem;font-size:.88rem}
+.c151-barra{height:10px;border-radius:99px;background:#ede4fb;overflow:hidden}.c151-barra i{display:block;height:100%;background:#6d28d9}
 .arc-turni{display:block;color:#0b5e4a;margin-top:4px}.lg-tu{background:linear-gradient(165deg,#f3fcf8,#b9e6d3);border:1px solid rgba(15,138,108,.45);box-shadow:0 2px 4px rgba(15,90,70,.3)}.scelta2--pic{margin:.6rem 0 .2rem}.turni-on .cal-g.we.bloc{opacity:1}
 .msg-err{background:#fde8e7;color:#9b1c14;border-radius:10px;padding:.6rem .75rem;font-size:.88rem;font-weight:700;margin-top:.4rem}
 .msg-avv{background:#fff4d6;color:#6b4e00;border-radius:10px;padding:.6rem .75rem;font-size:.88rem;font-weight:700;margin-top:.4rem}
@@ -288,8 +292,12 @@ body.bloccata main{visibility:hidden}
     <button class="scelta2__voce on" id="modo-si" role="radio" aria-checked="true">📅 Chiedo permessi</button>
     <button class="scelta2__voce" id="modo-no" role="radio" aria-checked="false">🚫 Non chiedo permessi</button>
   </div>
-  <div class="card solo-si">
+  <div class="card solo-si" id="card-cal">
     <div class="cal-testa"><h2 style="margin:0" id="cal-titolo">Giorni di permesso</h2><span id="contatore" class="contatore solo-p2">0 / 3 giorni</span></div>
+    <div class="scelta2 scelta2--pic solo-p2" id="sw-151" role="radiogroup" aria-label="Quali giorni segni" style="display:none">
+      <button class="scelta2__voce on" id="cal-m104" role="radio" aria-checked="true">Giorni 104</button>
+      <button class="scelta2__voce" id="cal-m151" role="radio" aria-checked="false">Giorni 151</button>
+    </div>
     <p class="muted" id="cal-istr">Tocca i giorni che vuoi prendere (massimo 3 al mese). Tocca di nuovo per toglierli.</p>
     <div class="cal-sett" aria-hidden="true"><span>LUN</span><span>MAR</span><span>MER</span><span>GIO</span><span>VEN</span><span class="we">SAB</span><span class="we">DOM</span></div>
     <div class="cal-griglia" id="cal-griglia"></div>
@@ -297,7 +305,7 @@ body.bloccata main{visibility:hidden}
     <div class="msg-avv" id="cal-avv" hidden></div>
     <div class="cal-nel solo-p2" id="cal-periodi"></div>
     <div class="cal-nel" id="cal-turni"></div>
-    <div class="legenda"><span class="solo-p2"><i class="lg lg-sel"></i>Scelto 104</span><span><i class="lg lg-we"></i><span id="lg-we">Sab/Dom</span></span><span><i class="lg lg-fe"></i>Festivo</span><span><i class="lg lg-tu"></i>Turno</span></div>
+    <div class="legenda"><span class="solo-p2"><i class="lg lg-sel"></i>104</span><span class="solo-p2 solo-151" style="display:none"><i class="lg lg-151"></i>151</span><span><i class="lg lg-we"></i><span id="lg-we">Sab/Dom</span></span><span><i class="lg lg-fe"></i>Festivo</span><span><i class="lg lg-tu"></i>Turno</span></div>
     <div class="tot" id="totale" hidden></div>
     <button class="btn solo-p1" id="b-avanti">Avanti</button>
   </div>
@@ -329,6 +337,8 @@ body.bloccata main{visibility:hidden}
     <h2>PDF pronto ✔ Controllalo</h2>
     <p id="nomepdf" class="muted"></p>
     <div id="anteprima" class="anteprima" title="Tocca per aprire il PDF"></div>
+    <p id="nomepdf151" class="muted" style="display:none"></p>
+    <div id="anteprima151" class="anteprima" title="Tocca per aprire il PDF della 151" style="display:none"></div>
     <button class="btn" id="b-invia">✉️ Invia per email</button>
     <p class="muted">Scegli <b>Mail</b> (o Gmail): PDF allegato, oggetto e testo sono già pronti, scrivi solo il destinatario.</p>
     <button class="btn sec" id="b-condividi-pdf">↗ Manda in altro modo (WhatsApp…)</button>
@@ -362,6 +372,13 @@ body.bloccata main{visibility:hidden}
     <label class="interr"><input type="checkbox" id="an-bloccaWE"><span><b>Blocca sabato e domenica</b><small>Se è spento si possono scegliere, ma con un avviso.</small></span></label>
   </div>
   <div class="card">
+    <h2>Congedo 151 (facoltativo)</h2>
+    <p class="muted">Solo se usi anche il congedo straordinario (art. 42 D.Lgs. 151/2001). Il modulo 151 si carica in «Modulo da compilare».</p>
+    <label for="an-g151">Giorni di congedo 151 già fruiti prima di usare l'app</label>
+    <input id="an-g151" type="number" min="0" max="730" inputmode="numeric" placeholder="es. 12">
+    <label class="interr"><input type="checkbox" id="an-g151vuoto"><span><b>Nel modulo lascia vuoto il totale già fruito</b><small>La riga «già fruito di numero giorni ___» resta da scrivere a mano. L'app tiene comunque il conto in Archivio.</small></span></label>
+  </div>
+  <div class="card">
     <h2>La tua firma</h2>
     <div class="firma-box" id="firma-vista"><span class="muted">Nessuna firma</span></div>
     <label for="file-firma" class="btn" style="text-transform:none;letter-spacing:0;color:#fff">📷 Fotografa o scegli la firma</label>
@@ -387,9 +404,10 @@ body.bloccata main{visibility:hidden}
     <div class="pillole" id="arc-anni"></div>
   </div>
   <div class="riep2">
-    <div class="card"><small class="muted">Giorni presi</small><b class="num" id="arc-tot">0</b></div>
+    <div class="card"><small class="muted">Giorni 104 presi</small><b class="num" id="arc-tot">0</b></div>
     <div class="card"><small class="muted">Mesi compilati</small><b class="num" id="arc-mesi-n">0 / 12</b></div>
   </div>
+  <div class="card" id="arc-151" style="display:none"></div>
   <div class="shub__elenco" id="arc-mesi"></div>
   <button class="btn" id="b-arc-pdf">Esporta in PDF l'anno</button>
 </section>
@@ -458,6 +476,16 @@ body.bloccata main{visibility:hidden}
     <p class="muted"><b>PDF</b> del modulo vuoto: resta identico all'originale. <b>Word (.docx)</b>: l'app lo impagina da sola in una pagina A4 (stesso testo, aspetto un po' diverso).</p>
     <label for="file-pdfword" class="btn sec" style="text-transform:none;letter-spacing:0">📄 Carica PDF o Word</label>
     <input id="file-pdfword" type="file" style="display:none">
+  </div>
+  <h2 class="shub__sezione">3 · Modulo 151 (facoltativo)</h2>
+  <div class="card">
+    <div class="stato-mod" id="stato-151"></div>
+    <button class="btn" id="b-vedi-151" style="display:none">👁 Vedi il modulo 151</button>
+    <div id="anteprima-151" class="anteprima" style="display:none"></div>
+    <p class="muted">Carica il <b>tuo Word (.docx)</b> della 151, con le tue diciture: l'app non cambia il testo, riempie solo le righe «Di fruire di un periodo di giorni … dal … al …», il totale già fruito, la data e la firma.</p>
+    <label for="file-151" class="btn sec" style="text-transform:none;letter-spacing:0">📄 Carica il Word della 151</label>
+    <input id="file-151" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none">
+    <button class="btn sec" id="b-togli-151" style="display:none">Togli il modulo 151</button>
   </div>
   <p class="muted" style="text-align:center" id="versione-mod"></p>
 </section>
@@ -555,7 +583,8 @@ body.bloccata main{visibility:hidden}
 <script src="pdf-lib.min.js"></script>
 <script src="word.js?v=2.4"></script>
 <script src="firma.js?v=2.7"></script>
-<script src="app.js?v=3.11"></script>
+<script src="app.js?v=3.12"></script>
+<script src="c151.js?v=1.0"></script>
 <script src="prepara.js?v=3.0"></script>
 <script src="accesso.js?v=3.0"></script>
 </body>
