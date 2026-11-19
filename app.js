@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.5";
+const VERSIONE = "3.6";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -392,7 +392,7 @@ $("b-salva-imp").addEventListener("click", () => {
 // calendario: si toccano i giorni; i giorni consecutivi diventano un unico periodo "dal… al…"
 const NOMI_G = ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"];
 const BREVI_G = ["dom", "lun", "mar", "mer", "gio", "ven", "sab"];
-let cal = { mese: 0, anno: 0, sel: new Set() };
+let cal = { mese: 0, anno: 0, sel: new Set(), modo: "104" };
 function pasqua(y) {   // algoritmo di Meeus
   const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
   const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
@@ -444,28 +444,54 @@ function disegnaCal() {
   $("lg-we").textContent = blocco ? "Sab/Dom: bloccati" : "Sab/Dom: con avviso";
   const primo = new Date(cal.anno, cal.mese - 1, 1), vuoti = (primo.getDay() + 6) % 7, nGiorni = new Date(cal.anno, cal.mese, 0).getDate();
   const g = $("cal-griglia"); g.innerHTML = "";
+  const turni = turniMese();
+  g.classList.toggle("turni-on", cal.modo === "turni");
+  const tl = [...turni].sort((x, y) => x - y);
+  $("cal-turni").innerHTML = tl.length ? `<b>I tuoi turni:</b> ${tl.map((d) => `${NOMI_G[new Date(cal.anno, cal.mese - 1, d).getDay()].slice(0, 3)} ${d}`).join(" · ")}` : "";
   for (let i = 0; i < vuoti; i++) { const s = document.createElement("span"); s.className = "cal-g vuoto"; g.append(s); }
   for (let d = 1; d <= nGiorni; d++) {
     const dt = new Date(cal.anno, cal.mese - 1, d), wd = dt.getDay(), we = wd === 0 || wd === 6, fe = fest[`${cal.mese}-${d}`];
     const b = document.createElement("button"); b.type = "button"; b.textContent = d;
-    b.className = "cal-g" + (we ? " we" + (blocco ? " bloc" : "") : "") + (fe ? " fe" : "") + (cal.sel.has(d) ? " sel" : "") + (dt.toDateString() === oggi.toDateString() ? " oggi" : "");
-    b.setAttribute("aria-label", `${NOMI_G[wd]} ${d} ${MESI[cal.mese - 1]}${fe ? ", festivo" : ""}${cal.sel.has(d) ? ", scelto" : ""}`);
-    b.setAttribute("aria-pressed", cal.sel.has(d) ? "true" : "false");
+    const tu = turni.has(d), premuto = cal.modo === "turni" ? tu : cal.sel.has(d);
+    b.className = "cal-g" + (we ? " we" + (blocco ? " bloc" : "") : "") + (fe ? " fe" : "") + (cal.sel.has(d) ? " sel" : "") + (tu ? " tu" : "") + (dt.toDateString() === oggi.toDateString() ? " oggi" : "");
+    b.setAttribute("aria-label", `${NOMI_G[wd]} ${d} ${MESI[cal.mese - 1]}${fe ? ", festivo" : ""}${tu ? ", turno di servizio" : ""}${cal.sel.has(d) ? ", scelto per la 104" : ""}`);
+    b.setAttribute("aria-pressed", premuto ? "true" : "false");
     b.addEventListener("click", () => toccaGiorno(d));
     g.append(b);
   }
   totale();
 }
+// ---- turni di servizio: si segnano sul calendario (valgono per tutte le persone assistite)
+function chiaveMese() { return `${cal.anno}-${pad2(cal.mese)}`; }
+function turniMese() { return new Set((mem.get("m104_turni", {})[chiaveMese()]) || []); }
+function salvaTurni(set) {
+  const t = mem.get("m104_turni", {}), k = chiaveMese();
+  if (set.size) t[k] = [...set].sort((a, b) => a - b); else delete t[k];
+  mem.set("m104_turni", t);
+}
+function modoCal(m) {
+  cal.modo = m;
+  for (const [id, v] of [["cal-m104", "104"], ["cal-mturni", "turni"]]) { $(id).classList.toggle("on", m === v); $(id).setAttribute("aria-checked", m === v ? "true" : "false"); }
+  $("cal-istr").textContent = m === "turni" ? "Tocca i giorni in cui monti il turno di servizio. Poi torna su «Giorni 104» per scegliere i permessi." : "Tocca i giorni che vuoi prendere (massimo 3 al mese). Tocca di nuovo per toglierli.";
+  $("cal-err").hidden = true; $("cal-avv").hidden = true; disegnaCal();
+}
+$("cal-m104").addEventListener("click", () => modoCal("104"));
+$("cal-mturni").addEventListener("click", () => modoCal("turni"));
 function toccaGiorno(d) {
   const dt = new Date(cal.anno, cal.mese - 1, d), wd = dt.getDay(), we = wd === 0 || wd === 6, fe = festivi(cal.anno)[`${cal.mese}-${d}`];
   const err = $("cal-err"), avv = $("cal-avv"); err.hidden = true; avv.hidden = true;
+  if (cal.modo === "turni") {
+    const t = turniMese(); if (t.has(d)) t.delete(d); else t.add(d);
+    salvaTurni(t); disegnaCal(); return;
+  }
   if (cal.sel.has(d)) { cal.sel.delete(d); disegnaCal(); return; }
   if (we && anag().bloccaWE !== false) {
     err.hidden = false; err.textContent = `${NOMI_G[wd][0].toUpperCase() + NOMI_G[wd].slice(1)} ${d}: sabato e domenica sono bloccati (puoi sbloccarli in Anagrafica → Impostazioni).`;
     return;
   }
   cal.sel.add(d); disegnaCal();
-  if (we) { avv.hidden = false; avv.textContent = `Attenzione: hai scelto ${NOMI_G[wd]} ${d}. È un fine settimana: controlla che sia corretto.`; }
+  if (turniMese().has(d)) { avv.hidden = false; avv.textContent = `Attenzione: ${NOMI_G[wd]} ${d} è un tuo turno di servizio. Mettendo la 104 sul turno, quel giorno non vai al lavoro.`; }
+  else if (we) { avv.hidden = false; avv.textContent = `Attenzione: hai scelto ${NOMI_G[wd]} ${d}. È un fine settimana: controlla che sia corretto.`; }
   else if (fe) { avv.hidden = false; avv.textContent = `Attenzione: il ${d} ${MESI[cal.mese - 1].toLowerCase()} è festivo (${fe}).`; }
 }
 // giorni scelti -> periodi (i consecutivi si uniscono)
@@ -667,7 +693,7 @@ $("b-crea").addEventListener("click", () => {
 let daConfermare = null;
 function apriConferma(m, persona) {
   daConfermare = m;
-  const fest = festivi(m.anno), mm = pad2(m.mese);
+  const fest = festivi(m.anno), mm = pad2(m.mese), turniC = new Set(mem.get("m104_turni", {})[`${m.anno}-${mm}`] || []);
   const per = `per <b>${esc(persona.nome)}</b>${persona.parentela ? " (" + esc(persona.parentela) + ")" : ""}`;
   let h = "";
   if (nonChiedo) {
@@ -677,8 +703,8 @@ function apriConferma(m, persona) {
     const n = m.giorni.length;
     $("cf-titolo").textContent = n ? `Hai selezionato ${n} ${n === 1 ? "giorno" : "giorni"}` : "Permessi orari";
     h = `<p>${MESI[m.mese - 1]} ${m.anno}, ${per}:</p><div class="cf-lista">` + m.giorni.map((d) => {
-      const dt = new Date(m.anno, m.mese - 1, d), wd = dt.getDay(), avv = wd === 0 || wd === 6 ? " (fine settimana)" : fest[`${m.mese}-${d}`] ? ` (${fest[`${m.mese}-${d}`]})` : "";
-      return `<div><b class="${avv ? "avv" : ""}" style="text-transform:capitalize">${NOMI_G[wd]}${avv}</b><span>${pad2(d)}/${mm}/${m.anno}</span></div>`;
+      const dt = new Date(m.anno, m.mese - 1, d), wd = dt.getDay(), avv = turniC.has(d) ? " (turno di servizio)" : wd === 0 || wd === 6 ? " (fine settimana)" : fest[`${m.mese}-${d}`] ? ` (${fest[`${m.mese}-${d}`]})` : "";
+      return `<div><b class="${avv ? "avv" : ""}"><span style="text-transform:capitalize">${NOMI_G[wd]}</span>${avv}</b><span>${pad2(d)}/${mm}/${m.anno}</span></div>`;
     }).join("") + m.orari.map(([g, a, b]) => `<div><b style="text-transform:capitalize">${NOMI_G[new Date(m.anno, m.mese - 1, g).getDay()]} (orario)</b><span>${pad2(g)}/${mm} · ${esc(a)}-${esc(b)}</span></div>`).join("") + "</div>";
     if (m.periodi.length) h += `<p class="muted">Nel modulo: ${m.periodi.map(([a, b]) => `dal ${pad2(a)}/${mm}/${m.anno} al ${pad2(b)}/${mm}/${m.anno}`).join(" · ")}</p>`;
   }
