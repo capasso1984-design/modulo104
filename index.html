@@ -371,7 +371,7 @@ body.bloccata main{visibility:hidden}
     <h2>Impostazioni</h2>
     <label class="interr"><input type="checkbox" id="an-bloccaWE"><span><b>Blocca sabato e domenica</b><small>Se è spento si possono scegliere, ma con un avviso.</small></span></label>
   </div>
-  <div class="card">
+  <div class="card solo-admin">
     <h2>Congedo 151 (facoltativo)</h2>
     <p class="muted">Solo se usi anche il congedo straordinario (art. 42 D.Lgs. 151/2001). Il modulo 151 si carica in «Modulo da compilare».</p>
     <label for="an-g151">Giorni di congedo 151 già fruiti prima di usare l'app</label>
@@ -477,8 +477,8 @@ body.bloccata main{visibility:hidden}
     <label for="file-pdfword" class="btn sec" style="text-transform:none;letter-spacing:0">📄 Carica PDF o Word</label>
     <input id="file-pdfword" type="file" style="display:none">
   </div>
-  <h2 class="shub__sezione">3 · Modulo 151 (facoltativo)</h2>
-  <div class="card">
+  <h2 class="shub__sezione solo-admin">3 · Modulo 151 (facoltativo)</h2>
+  <div class="card solo-admin">
     <div class="stato-mod" id="stato-151"></div>
     <button class="btn" id="b-vedi-151" style="display:none">👁 Vedi il modulo 151</button>
     <div id="anteprima-151" class="anteprima" style="display:none"></div>
@@ -583,7 +583,7 @@ body.bloccata main{visibility:hidden}
 <script src="pdf-lib.min.js"></script>
 <script src="word.js?v=2.4"></script>
 <script src="firma.js?v=2.7"></script>
-<script src="app.js?v=3.12"></script>
+<script src="app.js?v=3.13"></script>
 <script src="c151.js?v=1.0"></script>
 <script src="prepara.js?v=3.0"></script>
 <script src="accesso.js?v=3.0"></script>
