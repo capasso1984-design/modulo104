@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.22";
+const VERSIONE = "3.23";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -1138,10 +1138,12 @@ window.M104 = { creaPdf, calcolaValori, leggiMese, salvaPacchetto, toast, vai, a
 
 // ---------------------------------------------------------------- condivisione e installazione
 const LINK_APP = location.origin + location.pathname.replace(/index\.html$/, "");
-const TESTO_INVITO = "Ti mando l'app Modulo 104: compila e invia il modulo mensile dei permessi L.104/92 dal telefono. " +
-  "Apri il link e segui le istruzioni per aggiungerla alla schermata Home:";
+const TESTO_INVITO = "Ti mando Modulo 104, l'app che ho ideato per semplificare la vita a chi usufruisce della 104 e non sempre riesce a collegarsi. " +
+  "Ti aiuta a programmare non solo i giorni di 104 ma anche i tuoi turni, crea il modulo pronto con la firma e lo tiene in archivio. " +
+  "Gratis, e i tuoi dati restano solo sul tuo telefono.\n\nApri il link qui sotto e aggiungila alla schermata Home.";
+const FIRMA_INVITO = "Modulo 104 – ideata da Mario Capasso";
 async function condividiApp(conModulo, link = LINK_APP, nota = "") {
-  const testo = `${TESTO_INVITO}\n${link}${nota ? "\n\n" + nota : ""}`;
+  const testo = `${TESTO_INVITO}\n${link}${nota ? "\n\n" + nota : ""}\n\n${FIRMA_INVITO}`;
   if (conModulo) {
     if (!pacchetto) { toast("Prima carica il modulo da compilare"); vai("s-modulo"); return; }
     const nomeFile = `Modulo104 - ${String(pacchetto.nome || "modulo").replace(/[<>:"/\|?*]/g, "-")}.m104`;
@@ -1159,7 +1161,7 @@ async function condividiApp(conModulo, link = LINK_APP, nota = "") {
     toast("File del modulo salvato: allegalo tu al messaggio");
   }
   if (navigator.share) {
-    try { await navigator.share({ title: "Modulo 104", text: TESTO_INVITO + (nota ? "\n" + nota : ""), url: link }); return; }
+    try { await navigator.share({ title: "Modulo 104", text: TESTO_INVITO + (nota ? "\n" + nota : "") + "\n\n" + FIRMA_INVITO, url: link }); return; }
     catch (e) { if (e.name === "AbortError") return; }
   }
   if (await copia(testo)) toast("Link copiato ✔ Incollalo in WhatsApp, email o SMS");

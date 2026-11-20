@@ -11,16 +11,16 @@
 <meta name="apple-mobile-web-app-title" content="Modulo 104">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Modulo 104 – compila il modulo dal telefono">
-<meta property="og:description" content="App gratuita per compilare e inviare il modulo mensile dei permessi L.104/92. Tocca il link e aggiungila alla schermata Home.">
-<meta property="og:image" content="https://capasso1984-design.github.io/modulo104/anteprima.png?v=2">
+<meta property="og:title" content="Modulo 104 – ideata da Mario Capasso">
+<meta property="og:description" content="Per chi usufruisce della 104 e non sempre riesce a collegarsi: programmi i giorni di 104 e i turni, il modulo è pronto con la firma e resta in archivio. Gratis, i dati restano sul telefono.">
+<meta property="og:image" content="https://capasso1984-design.github.io/modulo104/anteprima.png?v=3">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:url" content="https://capasso1984-design.github.io/modulo104/">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="manifest" href="manifest.webmanifest?v=2">
-<link rel="apple-touch-icon" href="icon-192.png?v=2">
-<link rel="icon" href="icon-192.png?v=2">
+<link rel="manifest" href="manifest.webmanifest?v=3">
+<link rel="apple-touch-icon" href="icon-192.png?v=3">
+<link rel="icon" href="icon-192.png?v=3">
 <style>
 /* Stile "hub" come il menu della Cassa di Rebecca: grande pulsante principale, sezioni, righe con icona tonda */
 :root{--pri:#1d5fc4;--pri-rgb:29,95,196;--bg:#eef2f8;--card:rgba(255,255,255,.96);--txt:#1b2a41;--muted:#4d5e78;--ok:#28a745;--ok-rgb:40,167,69;--warn:#ffc107;--warn-rgb:255,193,7;--err:#dc3545;--line:rgba(29,95,196,.12)}
@@ -123,6 +123,8 @@ input[type=range]{padding:0;border:0;background:none;accent-color:var(--pri)}
 .blocco__box{max-width:420px;width:100%;background:var(--card);border-radius:20px;box-shadow:0 10px 30px rgba(20,40,80,.15);padding:22px;text-align:center}
 .blocco__box h1{color:var(--pri);margin:.4rem 0 .6rem;font-size:1.5rem}
 .blocco__box img{border-radius:16px}
+.firma-autore{text-align:center;color:var(--muted);font-size:.8rem;margin:1.2rem 0 .4rem;letter-spacing:.02em}
+.blocco__box .firma-autore{margin:-.4rem 0 .8rem}
 .blocco__box textarea,.blocco__box input{text-align:left}
 body.bloccata main{visibility:hidden}
 .mese-nav{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.6rem}
@@ -242,7 +244,7 @@ body.bloccata main{visibility:hidden}
 <!-- MENU (stile hub della Cassa) -->
 <section id="s-home" class="on">
   <div class="testa">
-    <img src="icon-192.png?v=2" alt="">
+    <img src="icon-192.png?v=3" alt="">
     <div class="t">
       <h1 class="shub__titolo">Modulo 104</h1>
       <p class="shub__sub" id="sottotitolo">Programmazione permessi L.104/92</p>
@@ -309,6 +311,7 @@ body.bloccata main{visibility:hidden}
     </button>
   </div>
   <div id="storico" hidden></div>
+  <p class="firma-autore">Modulo 104 · ideata da <b>Mario Capasso</b></p>
 </section>
 
 <!-- COMPILA -->
@@ -600,6 +603,7 @@ body.bloccata main{visibility:hidden}
     <p class="muted">Tutti i dati restano su questo telefono: niente viene inviato a server.</p>
     <p class="muted" id="info-accesso"></p>
     <p class="muted" id="versione"></p>
+    <p class="firma-autore">Ideata da <b>Mario Capasso</b></p>
   </div>
 </section>
 </main>
@@ -612,8 +616,9 @@ body.bloccata main{visibility:hidden}
 </div>
 <div id="blocco" class="blocco" hidden>
   <div class="blocco__box">
-    <img src="icon-192.png?v=2" alt="" width="72" height="72">
+    <img src="icon-192.png?v=3" alt="" width="72" height="72">
     <h1>Modulo 104</h1>
+    <p class="firma-autore">ideata da <b>Mario Capasso</b></p>
     <div id="bl-normale">
       <p><b>App riservata.</b> Per usarla serve l'invito personale di chi te l'ha consigliata.</p>
       <p class="muted">Hai già ricevuto l'invito? Copia il messaggio o il link e incollalo qui (su iPhone, dopo aver aggiunto l'app alla schermata Home, va incollato di nuovo qui).</p>
@@ -633,7 +638,7 @@ body.bloccata main{visibility:hidden}
 <script src="pdf-lib.min.js"></script>
 <script src="word.js?v=2.4"></script>
 <script src="firma.js?v=2.7"></script>
-<script src="app.js?v=3.22"></script>
+<script src="app.js?v=3.23"></script>
 <script src="c151.js?v=1.0"></script>
 <script src="vedi.js?v=1.2"></script>
 <script src="prepara.js?v=3.0"></script>
