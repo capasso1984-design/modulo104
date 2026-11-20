@@ -3,7 +3,7 @@
    NON salva mai la chiave dell'amministratore (m104_admin) né l'elenco degli inviti creati. */
 (function () {
   const $ = (id) => document.getElementById(id);
-  const ESCLUSI = ["m104_admin", "m104_inviti", "m104_no_installa"];
+  const ESCLUSI = ["m104_admin", "m104_admin_gh", "m104_inviti", "m104_no_installa", "m104_revocato"];
   const IDB_CHIAVI = ["tuo", "uso", "m151"];
   const FORMATO = "modulo104-copia";
 

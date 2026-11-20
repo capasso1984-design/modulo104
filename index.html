@@ -123,6 +123,19 @@ input[type=range]{padding:0;border:0;background:none;accent-color:var(--pri)}
 .blocco__box{max-width:420px;width:100%;background:var(--card);border-radius:20px;box-shadow:0 10px 30px rgba(20,40,80,.15);padding:22px;text-align:center}
 .blocco__box h1{color:var(--pri);margin:.4rem 0 .6rem;font-size:1.5rem}
 .blocco__box img{border-radius:16px}
+.inv-riga{display:flex;align-items:center;gap:.5rem;padding:.55rem 0;border-top:1px solid var(--line)}
+.inv-riga:first-child{border-top:0}
+#gh-box a{color:var(--pri);font-weight:700}
+.inv-riga__t{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.inv-riga__t b{font-size:.95rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inv-riga__t small{color:var(--muted);font-size:.78rem}
+.inv-riga.bloc .inv-riga__t b{color:#b91c1c}
+.inv-stato{font-size:.75rem;font-weight:800;color:#b91c1c}
+.inv-b{font:inherit;font-weight:800;font-size:.82rem;border-radius:99px;padding:.42rem .8rem;border:1.5px solid rgba(var(--pri-rgb),.28);background:var(--card);color:var(--pri);cursor:pointer;flex:none}
+.inv-b.blocca{border-color:rgba(185,28,28,.4);color:#b91c1c}
+.inv-b.sblocca{background:#10b981;border-color:#10b981;color:#fff}
+.inv-b.togli{padding:.42rem .62rem;color:var(--muted);border-color:var(--line)}
+@media (prefers-color-scheme:dark){.inv-b.blocca{color:#f87171;border-color:rgba(248,113,113,.45)}.inv-riga.bloc .inv-riga__t b,.inv-stato{color:#f87171}}
 .firma-autore{text-align:center;color:var(--muted);font-size:.8rem;margin:1.2rem 0 .4rem;letter-spacing:.02em}
 .blocco__box .firma-autore{margin:-.4rem 0 .8rem}
 .blocco__box textarea,.blocco__box input{text-align:left}
@@ -484,7 +497,29 @@ body.bloccata main{visibility:hidden}
     <button class="btn" id="inv-crea">Crea l'invito e condividilo</button>
     <p class="muted" id="inv-msg"></p>
   </div>
-  <div class="card"><h2>Inviti creati</h2><ul class="muted" id="inv-storico" style="margin:0;padding-left:1.1rem"></ul></div>
+  <div class="card"><h2>Inviti creati</h2>
+    <p class="muted" style="margin:0 0 .3rem">«Blocca» spegne l'app a quel collega (al primo avvio con internet); «Sblocca» la riattiva. «✕» lo toglie solo da questa lista.</p>
+    <div id="inv-storico"></div>
+  </div>
+  <div class="card" style="margin-top:.8rem">
+    <h2>Collegamento per i blocchi</h2>
+    <p class="muted" id="gh-stato"></p>
+    <div id="gh-box" hidden>
+      <p class="muted">Serve una sola volta: permette a questo telefono di pubblicare l'elenco dei bloccati sul sito dell'app.</p>
+      <ol class="muted" style="padding-left:1.1rem;margin:.2rem 0">
+        <li>Apri <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com → nuovo token</a> (accedi con il tuo account GitHub).</li>
+        <li>Nome: «Modulo 104 blocchi» · Scadenza: 1 anno.</li>
+        <li><b>Repository access</b> → «Only select repositories» → <b>modulo104</b>.</li>
+        <li><b>Permissions</b> → Repository → <b>Contents: Read and write</b>.</li>
+        <li>Tocca «Generate token», copialo e incollalo qui sotto.</li>
+      </ol>
+      <label for="gh-token">Token GitHub</label><input id="gh-token" type="password" autocomplete="off" placeholder="github_pat_…">
+      <button class="btn" id="gh-collega">Collega</button>
+      <p class="muted">Il token resta solo su questo telefono, protetto dal tuo codice amministratore. Non va mai dato a nessuno.</p>
+      <p class="err" id="gh-msg"></p>
+    </div>
+    <div class="row"><button class="btn sec" id="gh-mostra">Istruzioni</button><button class="btn sec" id="gh-scollega" hidden>Scollega</button></div>
+  </div>
 </section>
 
 <!-- EDITOR FIRMA -->
@@ -671,11 +706,11 @@ body.bloccata main{visibility:hidden}
 <script src="pdf-lib.min.js"></script>
 <script src="word.js?v=2.4"></script>
 <script src="firma.js?v=2.7"></script>
-<script src="app.js?v=3.24"></script>
+<script src="app.js?v=3.25"></script>
 <script src="c151.js?v=1.0"></script>
 <script src="vedi.js?v=1.2"></script>
 <script src="prepara.js?v=3.0"></script>
-<script src="accesso.js?v=3.0"></script>
-<script src="copia.js?v=1.0"></script>
+<script src="accesso.js?v=3.1"></script>
+<script src="copia.js?v=1.1"></script>
 </body>
 </html>
