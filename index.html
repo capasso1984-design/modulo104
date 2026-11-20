@@ -237,6 +237,7 @@ body.bloccata main{visibility:hidden}
   <symbol id="i-elenco" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></symbol>
   <symbol id="i-freccia" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
   <symbol id="i-indietro" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></symbol>
+  <symbol id="i-scudo" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6Z"/><path d="m9 12 2 2 4-4"/></symbol>
   <symbol id="i-piu" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
 </svg>
 <main>
@@ -295,6 +296,11 @@ body.bloccata main{visibility:hidden}
   </div>
   <h2 class="shub__sezione">Aiuto</h2>
   <div class="shub__elenco">
+    <button class="shub__riga" data-vai="s-copia">
+      <span class="shub__tondo"><svg class="sic"><use href="#i-scudo"/></svg></span>
+      <span class="shub__testo"><b>Copia di sicurezza</b><small>Salva i tuoi dati in un file e rimettili quando cambi telefono o icona</small></span>
+      <svg class="sic freccia"><use href="#i-freccia"/></svg>
+    </button>
     <button class="shub__riga" data-vai="s-aiuto">
       <span class="shub__tondo"><svg class="sic"><use href="#i-telefono"/></svg></span>
       <span class="shub__testo"><b>Installa sul telefono</b><small>Come mettere l'icona nella schermata Home</small></span>
@@ -591,6 +597,30 @@ body.bloccata main{visibility:hidden}
   <input id="em-a" type="hidden"><input id="em-cc" type="hidden">
 </section>
 
+<!-- COPIA DI SICUREZZA -->
+<section id="s-copia">
+  <button class="indietro" data-vai="s-home"><svg class="sic"><use href="#i-indietro"/></svg>Menu</button>
+  <h1 class="shub__titolo">Copia di sicurezza</h1>
+  <div class="card">
+    <h2>💾 Salva una copia</h2>
+    <p class="muted">Crea un file con anagrafica, firma, archivio dei mesi, turni, impostazioni, modulo caricato e modulo 151. Salvalo in <b>File</b> / iCloud / Drive, o mandalo a te stesso.</p>
+    <button class="btn" id="cp-salva">Salva copia dei miei dati</button>
+    <p class="muted" id="cp-ultima"></p>
+  </div>
+  <div class="card" style="margin-top:.8rem">
+    <h2>♻️ Ripristina</h2>
+    <p class="muted">Scegli il file della copia: i dati tornano come quando l'hai salvata.</p>
+    <button class="btn sec" id="cp-ripristina">Ripristina da copia</button>
+    <input type="file" id="cp-file" accept=".json,application/json" hidden>
+  </div>
+  <div class="card" style="margin-top:.8rem">
+    <h2>Quando serve</h2>
+    <p class="muted"><b>iPhone – icona nuova:</b> togliendo l'app dalla schermata Home si cancellano i suoi dati. Prima salva la copia, poi togli l'app, riaggiungila da Safari e nella schermata «App riservata» tocca <b>«Ripristina da copia»</b>.</p>
+    <p class="muted"><b>Telefono nuovo:</b> salva la copia sul vecchio, mandala sul nuovo e ripristinala.</p>
+    <p class="muted">⚠️ Il file contiene i tuoi dati personali e la firma: tienilo per te e non condividerlo con altri.</p>
+  </div>
+</section>
+
 <!-- AIUTO INSTALLAZIONE -->
 <section id="s-aiuto">
   <button class="indietro" data-vai="s-home"><svg class="sic"><use href="#i-indietro"/></svg>Menu</button>
@@ -624,6 +654,9 @@ body.bloccata main{visibility:hidden}
       <p class="muted">Hai già ricevuto l'invito? Copia il messaggio o il link e incollalo qui (su iPhone, dopo aver aggiunto l'app alla schermata Home, va incollato di nuovo qui).</p>
       <textarea id="bl-codice" rows="3" placeholder="Incolla qui il link d'invito"></textarea>
       <div class="row"><button class="btn sec" id="bl-incolla">Incolla</button><button class="btn" id="bl-attiva">Attiva</button></div>
+      <p class="muted" style="margin-top:1rem">Hai già usato l'app e hai salvato una copia dei tuoi dati?</p>
+      <button class="btn sec" id="bl-ripristina">Ripristina da copia</button>
+      <input type="file" id="bl-file" accept=".json,application/json" hidden>
     </div>
     <div id="bl-admin" hidden>
       <p><b>Attivazione amministratore.</b> Scegli un codice (almeno 6 caratteri): ti servirà per creare gli inviti. Non dirlo a nessuno.</p>
@@ -638,10 +671,11 @@ body.bloccata main{visibility:hidden}
 <script src="pdf-lib.min.js"></script>
 <script src="word.js?v=2.4"></script>
 <script src="firma.js?v=2.7"></script>
-<script src="app.js?v=3.23"></script>
+<script src="app.js?v=3.24"></script>
 <script src="c151.js?v=1.0"></script>
 <script src="vedi.js?v=1.2"></script>
 <script src="prepara.js?v=3.0"></script>
 <script src="accesso.js?v=3.0"></script>
+<script src="copia.js?v=1.0"></script>
 </body>
 </html>
