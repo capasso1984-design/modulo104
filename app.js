@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.25";
+const VERSIONE = "3.26";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -929,15 +929,17 @@ function disegnaArchivio() {
       tot += r.giorni.length;
       const or = r.orari.map(([g, x, y]) => `${pad2(g)} ${esc(x)}-${esc(y)}`).join(" · ");
       const pp = persone().find((x) => x.id === pid);
-      righe += riga(tono104(pid) === 1 ? "a104 a104b" : tono104(pid) === 2 ? "a104 a104c" : "a104", "104", persone().length > 1 && pp ? `Permessi ${etichetta104(pp)}` : "Permessi 104", [gg(i, r.giorni), or].filter(Boolean).join(" · ") , `${r.giorni.length}/3`, "104", i + 1);
+      righe += riga(tono104(pid) === 1 ? "a104 a104b" : tono104(pid) === 2 ? "a104 a104c" : "a104", "104", (persone().length > 1 && pp ? `Permessi ${etichetta104(pp)}` : "Permessi 104") + (r.var && r.var.length ? " (dopo la variazione)" : ""), [gg(i, r.giorni), or].filter(Boolean).join(" · ") , `${r.giorni.length}/3`, "104", i + 1);
     }
+    if (r && r.var && r.var.length) r.var.forEach((x, k) => { righe += riga("avar", "🔁", `Variazione del ${esc(x.data)}`, esc(window.M104var ? M104var.descrivi(x) : ""), "", "var" + k, i + 1); });
     if (r && r.g151 && r.g151.length) { t151 += r.g151.length; righe += riga("a151", "151", "Congedo 151", gg(i, r.g151), `${r.g151.length} gg`, "151", i + 1); }
     if (tu.length) righe += riga("atu", "T", "Turni di servizio", tu.map((d) => `${BREVI_G[new Date(arcAnno, i, d).getDay()]} ${d}`).join(" · "), String(tu.length), "turni", i + 1);
     if (!r) righe += `<small class="muted">Modulo non ancora creato.</small>`;
     carte.push(`<div class="arc-card"><div class="arc-card__testa"><b class="arc-card__mese">${nome}</b>${r ? `<span class="arc-card__data">creato il ${esc(r.creato)}</span><button class="arc-x" data-cancella="${arcAnno}-${pad2(i + 1)}" aria-label="Cancella ${nome} dall'archivio" title="Cancella">✕</button>` : ""}</div>
-      ${righe}<div class="arc-azioni3">
+      ${righe}<div class="arc-azioni3${r && !r.solo151 ? " q4" : ""}">
         <button class="arc-az az-vedi" data-vedi="${i + 1}"><span class="arc-az__i"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>Visualizza</button>
         <button class="arc-az az-mod" data-apri="${i + 1}"><span class="arc-az__i"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>${r ? "Modifica" : "Compila"}</button>
+        ${r && !r.solo151 ? `<button class="arc-az az-var" data-var="${i + 1}"><span class="arc-az__i"><svg viewBox="0 0 24 24"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg></span>Variazione</button>` : ""}
         <button class="arc-az az-cond" data-condividi="${i + 1}"><span class="arc-az__i"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></span>Condividi</button>
       </div></div>`);
   });
@@ -949,6 +951,7 @@ function disegnaArchivio() {
     const ar = archivio(); delete (ar[pid] || {})[b.dataset.cancella]; mem.set("m104_archivio", ar); disegnaArchivio();
   }));
   $("arc-mesi").querySelectorAll("[data-doc]").forEach((b) => b.addEventListener("click", () => docMese(pid, arcAnno, +b.dataset.m, b.dataset.doc, b.dataset.az, b)));
+  $("arc-mesi").querySelectorAll("[data-var]").forEach((b) => b.addEventListener("click", () => M104var.apri(pid, arcAnno, +b.dataset.var)));
   $("arc-mesi").querySelectorAll("[data-vedi]").forEach((b) => b.addEventListener("click", () => apriVedi(pid, arcAnno, +b.dataset.vedi)));
   $("arc-mesi").querySelectorAll("[data-condividi]").forEach((b) => b.addEventListener("click", async () => { await preparaVedi(pid, arcAnno, +b.dataset.condividi); condividiVedi(); }));
   $("arc-tot").textContent = String(tot); $("arc-mesi-n").textContent = `${comp} / 12`;
@@ -970,6 +973,7 @@ async function docMese(pid, anno, mese, tipo, az, btn) {
   if (btn) btn.disabled = true;
   try {
     let out;
+    if (tipo.startsWith("var")) { await M104var.documento(pid, anno, mese, +tipo.slice(3), az); return; }
     if (tipo === "turni") {
       const p = persone().find((x) => x.id === pid) || { nome: "" };
       const cv = M104vedi.disegna({ anno, mese, chi: "", richiedente: fissi(p).grado_nome + " · turni di servizio", p104: [], g151: [], turni: turniArchivio(r, anno, mese) });
@@ -980,10 +984,12 @@ async function docMese(pid, anno, mese, tipo, az, btn) {
       out = { blob: x.blob, nome: x.nome, tipo: "application/pdf", titolo: `Congedo 151 ${MESI[mese - 1]} ${anno}` };
     } else {
       if (!pacchetto) { toast("Prima carica il modulo da compilare"); return; }
-      const m = { mese, anno, daDate: !r.nessuno, periodi: r.nessuno ? [] : periodiDa(r.giorni), orari: r.orari || [], data: r.creato, motivo: r.nessuno ? r.motivo : "", giorni: r.giorni, g151: [] };
+      const pr = r.prog ? Object.assign({}, r, r.prog) : r;   // dopo una variazione si ristampa la programmazione originale
+      const m = { mese, anno, daDate: !pr.nessuno, periodi: pr.nessuno ? [] : periodiDa(pr.giorni), orari: r.orari || [], data: r.creato, motivo: pr.nessuno ? pr.motivo : "", giorni: pr.giorni, g151: [] };
+      const nessunoPrima = nonChiedo; nonChiedo = !!pr.nessuno;
       const prima = mem.get("m104_persona", null); mem.set("m104_persona", pid);   // il modulo è per la persona di questo archivio
       try { const x = await creaPdf(m); out = { blob: x.blob, nome: x.nome, tipo: "application/pdf", titolo: x.oggetto, testo: x.testo }; }
-      finally { mem.set("m104_persona", prima); }
+      finally { mem.set("m104_persona", prima); nonChiedo = nessunoPrima; }
     }
     const file = new File([out.blob], out.nome, { type: out.tipo });
     if (az === "condividi" && navigator.canShare && navigator.canShare({ files: [file] })) {

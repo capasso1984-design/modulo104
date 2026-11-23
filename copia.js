@@ -4,7 +4,7 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const ESCLUSI = ["m104_admin", "m104_admin_gh", "m104_inviti", "m104_no_installa", "m104_revocato"];
-  const IDB_CHIAVI = ["tuo", "uso", "m151"];
+  const IDB_CHIAVI = ["tuo", "uso", "m151", "mvar"];
   const FORMATO = "modulo104-copia";
 
   // ---- da/verso testo (i file Word/PDF sono byte: diventano base64)

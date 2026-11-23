@@ -143,7 +143,10 @@
       if (w > 30 || h > 30 || w < 3) return; // non è una casella
       const ph = Array.from(anc.children).find((x) => x.localName === "positionH"), pv = Array.from(anc.children).find((x) => x.localName === "positionV");
       const off = (pos) => { const o = pos && Array.from(pos.children).find((x) => x.localName === "posOffset"); return o ? num(o.textContent) * EMU : null; };
-      par.forme.push({ w, h, rifH: ph ? ph.getAttribute("relativeFrom") : "column", x: off(ph), rifV: pv ? pv.getAttribute("relativeFrom") : "paragraph", y: off(pv) ?? 0 });
+      // casella piena (spuntata): riempimento a tinta unita nella forma
+      const spPr = Array.from(anc.getElementsByTagNameNS("*", "spPr"))[0];
+      const piena = !!(spPr && Array.from(spPr.children).find((x) => x.localName === "solidFill"));
+      par.forme.push({ w, h, piena, rifH: ph ? ph.getAttribute("relativeFrom") : "column", x: off(ph), rifV: pv ? pv.getAttribute("relativeFrom") : "paragraph", y: off(pv) ?? 0 });
       void st2;
     };
     visita(p);
@@ -310,7 +313,7 @@
       if (disegna) for (const f of b.forme) {
         const fx = f.x === null ? area.x : (f.rifH === "page" ? 0 : area.x) + f.x * 1;
         const fy = yInizio - (f.rifV === "paragraph" || f.rifV === "line" ? f.y : 0) - f.h;
-        pg.drawRectangle({ x: fx, y: fy, width: f.w, height: f.h, borderColor: nero, borderWidth: 0.9 });
+        pg.drawRectangle({ x: fx, y: fy, width: f.w, height: f.h, borderColor: nero, borderWidth: 0.9, color: f.piena ? nero : undefined });
       }
       if (!stessoDopo) y -= (sp.dopo || 0) * scala;
     });

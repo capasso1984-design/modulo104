@@ -192,6 +192,17 @@ body.bloccata main{visibility:hidden}
 .arc-modifica{align-self:flex-end;border:0;background:none;color:var(--pri);font:inherit;font-weight:800;font-size:.9rem;cursor:pointer;padding:.2rem 0}
 .arc-pills{display:flex;flex-wrap:wrap;gap:6px}.arc-pill{border:1px solid var(--line);background:rgba(var(--pri-rgb),.07);color:var(--pri);border-radius:99px;padding:.35rem .8rem;font:inherit;font-weight:700;font-size:.85rem;cursor:pointer}
 .arc-azioni3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:.15rem}
+.arc-azioni3.q4{grid-template-columns:repeat(4,1fr)}.az-var .arc-az__i{color:#8b5cf6}
+.avar{--acc:#8b5cf6}@media (prefers-color-scheme:dark){.avar{--acc:#a78bfa}}
+.cal-g.var-via{background:#e5e7eb;color:#6b7280;text-decoration:line-through;border-color:transparent;box-shadow:none;transform:none}
+.cal-g.var-nuovo{box-shadow:0 0 0 3px #8b5cf6,0 7px 16px var(--om2),inset 0 2px 2px rgba(255,255,255,.45)}
+.cal-g.var-nuovo.tu{box-shadow:0 0 0 3px #10b981,0 0 0 6px #8b5cf6,0 7px 16px var(--om2),inset 0 2px 2px rgba(255,255,255,.45)}
+.cal-g.var-scelto{outline:3px dashed #8b5cf6;outline-offset:1px}
+@media (prefers-color-scheme:dark){.cal-g.var-via{background:#2b313b;color:#8b95a5}}
+.var-azioni{margin-top:.6rem;padding:.6rem .7rem;border-radius:12px;background:rgba(139,92,246,.1)}
+.var-azioni .row{margin-top:.4rem}.var-azioni .btn{margin-top:0;padding:.55rem .6rem;font-size:.9rem}
+.var-elenco{display:flex;flex-direction:column;gap:.3rem;font-size:.95rem}
+.lg-nuovo{background:linear-gradient(165deg,#ef4444,#7f1d1d);box-shadow:0 0 0 2px #8b5cf6}.lg-via{background:#d1d5db}.lg-104{background:linear-gradient(165deg,#ef4444,#7f1d1d)}
 .arc-az{display:flex;flex-direction:column;align-items:center;gap:5px;border:0;background:none;color:var(--txt);font:inherit;font-weight:700;font-size:.78rem;cursor:pointer;padding:.2rem 0}
 .arc-az__i{position:relative;overflow:hidden;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.15rem;line-height:1;
   background:radial-gradient(circle at 34% 28%,color-mix(in srgb,currentColor 26%,white) 0%,color-mix(in srgb,currentColor 15%,white) 55%,color-mix(in srgb,currentColor 24%,white) 100%);
@@ -484,6 +495,42 @@ body.bloccata main{visibility:hidden}
   </div>
 </section>
 
+<!-- VARIAZIONE DELLA PROGRAMMAZIONE -->
+<section id="s-var">
+  <button class="indietro" data-vai="s-archivio"><svg class="sic"><use href="#i-indietro"/></svg>Archivio</button>
+  <h1 class="shub__titolo" id="var-titolo">Variazione</h1>
+  <p class="shub__sub" id="var-chi"></p>
+  <div class="card">
+    <div class="cal-testa"><h2 style="margin:0">Cambia i giorni</h2><span id="var-conta" class="contatore">0 / 3 giorni</span></div>
+    <p class="muted" style="margin:.1rem 0 .3rem">Tocca un <b style="color:#b91c1c">giorno rosso</b> per spostarlo o toglierlo; tocca un giorno libero per aggiungerne uno. Ritocca una modifica per annullarla.</p>
+    <div class="cal-sett"><span>L</span><span>M</span><span>M</span><span>G</span><span>V</span><span>S</span><span>D</span></div>
+    <div class="cal-griglia" id="var-griglia"></div>
+    <div class="var-azioni" id="var-azioni" hidden>
+      <span id="var-az-testo"></span>
+      <div class="row"><button class="btn" id="var-sposta">🔁 Sposta</button><button class="btn sec" id="var-togli">✖ Togli</button><button class="btn sec" id="var-annulla">Annulla</button></div>
+    </div>
+    <p id="var-msg" class="avviso" hidden></p>
+    <div class="legenda"><span><i class="lg lg-104"></i>104</span><span><i class="lg lg-nuovo"></i>nuovo</span><span><i class="lg lg-via"></i>tolto</span><span><i class="lg lg-tu"></i>turno</span></div>
+  </div>
+  <div class="card" style="margin-top:.8rem">
+    <h2>Riepilogo della variazione</h2>
+    <div id="var-elenco" class="var-elenco"></div>
+    <p id="var-turno-avv" class="avviso" hidden></p>
+    <h2 style="margin-top:.6rem">I nuovi giorni si sovrappongono a servizi?</h2>
+    <div class="pillole"><button class="pill on" id="var-sovr-no">No</button><button class="pill" id="var-sovr-si">Sì, si sovrappongono</button></div>
+    <div id="var-sovr-box" hidden><label for="var-sovr-testo">In particolare (facoltativo)</label><input id="var-sovr-testo" type="text" placeholder="es. turno di servizio del 22/08"></div>
+    <label for="var-data">Data del modulo</label><input id="var-data" type="date">
+    <button class="btn" id="var-crea" disabled>📄 Crea il PDF della variazione</button>
+  </div>
+  <div class="card" id="var-ris" style="margin-top:.8rem" hidden>
+    <h2>✔ Variazione pronta</h2>
+    <p class="muted" id="var-ris-nome"></p>
+    <div id="var-anteprima" class="anteprima" title="Tocca per aprire il PDF"></div>
+    <div class="row"><button class="btn" id="var-condividi">↗ Condividi</button><button class="btn sec" id="var-apri">🖨 Apri / Stampa</button></div>
+    <button class="btn sec" id="var-chiudi">✓ Fatto, chiudi</button>
+  </div>
+</section>
+
 <!-- INVITO (solo amministratore) -->
 <section id="s-invito">
   <button class="indietro" data-vai="s-home"><svg class="sic"><use href="#i-indietro"/></svg>Menu</button>
@@ -580,6 +627,16 @@ body.bloccata main{visibility:hidden}
     <label for="file-151" class="btn sec" style="text-transform:none;letter-spacing:0">📄 Carica il Word della 151</label>
     <input id="file-151" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none">
     <button class="btn sec" id="b-togli-151" style="display:none">Togli il modulo 151</button>
+  </div>
+  <h2 class="shub__sezione">4 · Modulo di variazione</h2>
+  <div class="card">
+    <div class="stato-mod" id="stato-var"></div>
+    <button class="btn" id="b-vedi-var">👁 Vedi il modulo di variazione</button>
+    <div id="anteprima-var" class="anteprima" style="display:none"></div>
+    <p class="muted">Serve quando devi cambiare i giorni già programmati (Archivio → mese → <b>Variazione</b>). C'è già il modulo master: se il tuo reparto ne usa uno diverso, carica il <b>tuo Word (.docx)</b>.</p>
+    <label for="file-var" class="btn sec" style="text-transform:none;letter-spacing:0">📄 Carica il tuo Word della variazione</label>
+    <input id="file-var" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none">
+    <button class="btn sec" id="b-togli-var" style="display:none">Torna al modulo master</button>
   </div>
   <p class="muted" style="text-align:center" id="versione-mod"></p>
 </section>
@@ -704,10 +761,11 @@ body.bloccata main{visibility:hidden}
 </div>
 <div id="toast"></div>
 <script src="pdf-lib.min.js"></script>
-<script src="word.js?v=2.4"></script>
+<script src="word.js?v=2.5"></script>
 <script src="firma.js?v=2.7"></script>
-<script src="app.js?v=3.25"></script>
+<script src="app.js?v=3.26"></script>
 <script src="c151.js?v=1.0"></script>
+<script src="var.js?v=1.0"></script>
 <script src="vedi.js?v=1.2"></script>
 <script src="prepara.js?v=3.0"></script>
 <script src="accesso.js?v=3.1"></script>
