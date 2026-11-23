@@ -67,13 +67,25 @@
     return { bytes: master, nome: "Modulo variazione (master)", tuo: false };
   }
 
+  // righe del modulo: giorni spostati di fila su giorni di fila = una riga sola («dal 26 al 28 anziché dal 18 al 20»)
+  function righeVar(v) {
+    const out = [];
+    for (const [o, n] of v.sposta.slice().sort((x, y) => x[0] - y[0])) {
+      const u = out[out.length - 1];
+      if (u && o === u.vecchi[1] + 1 && n === u.nuovi[1] + 1) { u.vecchi[1] = o; u.nuovi[1] = n; }
+      else out.push({ nuovi: [n, n], vecchi: [o, o] });
+    }
+    for (const [x, y] of periodiDa(v.aggiungi)) out.push({ nuovi: [x, y], vecchi: null });
+    return out.sort((x, y) => x.nuovi[0] - y.nuovi[0]);
+  }
   // v = { mese, anno, sposta:[[vecchio,nuovo]], aggiungi:[nuovo], togli:[vecchio], sovr:bool, sovrTesto, data, pid }
   async function riempiWord(bytes, v) {
     const a = await apri(bytes), p = persone().find((x) => x.id === v.pid) || personaCorrente(), f = fissi(p);
     const dd = (g) => `${pad2(g)}/${pad2(v.mese)}/${v.anno}`;
     const mese = MESI[v.mese - 1];
-    const righe = v.sposta.map(([o, n]) => [n, o]).concat(v.aggiungi.map((n) => [n, null])).sort((x, y) => x[0] - y[0]);
-    if (righe.length > a.righe.length) throw new Error(`Il modulo ha ${a.righe.length} righe: al massimo ${a.righe.length} giorni nuovi per variazione`);
+    const righe = righeVar(v);
+    if (righe.length > a.righe.length) throw new Error(`Il modulo ha ${a.righe.length} righe e qui servono ${righe.length} righe: sposta i giorni di fila su giorni di fila, così stanno in una riga sola`);
+    const per = (p) => (p[0] === p[1] ? `il ${dd(p[0])}` : `dal ${dd(p[0])} al ${dd(p[1])}`);
     const sost = (rx, fn) => { const q = a.trova(rx); if (q) metti(q, fn(testoP(q))); return q; };
     sost(R.sott, () => `Il Sottoscritto ${f.grado_nome}`);
     sost(R.serv, (t) => (/[–-]\s*[_\s]*$/.test(t) ? t.replace(/[–-]\s*[_\s]*$/, "– ") : t.replace(/[_\s]*$/, " ")) + (f.reparto || "____________"));
@@ -83,13 +95,13 @@
     });
     const pg = a.trova(R.giorni);
     if (pg) {
-      const n = righe.length;
+      const n = v.sposta.length + v.aggiungi.length;
       metti(pg, n ? `giorni ${n} (${NUMERI[n] || n}) di permessi lavorativi mensili;` : "giorni ____ (__________) di permessi lavorativi mensili;");
       if (n) spunta(pg);
     }
     a.righe.forEach((q, i) => {
       const r = righe[i];
-      metti(q, r ? `dal ${dd(r[0])} al ${dd(r[0])}   anziché dal ${r[1] ? dd(r[1]) : "____/____/______"}` : RIGA_VUOTA);
+      metti(q, r ? per(r.nuovi) + (r.vecchi ? `   anziché ${per(r.vecchi)}` : "") + ";" : RIGA_VUOTA);
     });
     const nv = a.trova(R.nonvi);
     if (nv && v.togli.length) {
@@ -133,10 +145,9 @@
     return { blob: new Blob([await doc.save()], { type: "application/pdf" }), nome, testo: descrivi(v) };
   }
   function descrivi(v) {
-    const p = [];
-    v.sposta.slice().sort((x, y) => x[1] - y[1]).forEach(([o, n]) => p.push(`${pad2(n)} al posto del ${pad2(o)}`));
-    v.aggiungi.slice().sort((x, y) => x - y).forEach((n) => p.push(`aggiunto il ${pad2(n)}`));
-    if (v.togli.length) p.push(`tolto ${v.togli.slice().sort((x, y) => x - y).map(pad2).join(", ")}`);
+    const p = [], g = (q) => (q[0] === q[1] ? pad2(q[0]) : `${pad2(q[0])}-${pad2(q[1])}`);
+    righeVar({ sposta: v.sposta || [], aggiungi: v.aggiungi || [] }).forEach((r) => p.push(r.vecchi ? `${g(r.nuovi)} al posto del ${g(r.vecchi)}` : `aggiunto il ${g(r.nuovi)}`));
+    if ((v.togli || []).length) p.push(`tolto ${v.togli.slice().sort((x, y) => x - y).map(pad2).join(", ")}`);
     return p.join(" · ");
   }
 
@@ -157,7 +168,7 @@
     $("var-indietro-t").textContent = origine === "s-varmese" ? "Mesi" : "Archivio";
     const r = registro(pid, anno, mese);
     if (!r) { toast("Prima crea il modulo 104 di questo mese"); return; }
-    st = { pid, anno, mese, orig: new Set(r.nessuno || r.solo151 ? [] : r.giorni || []), sposta: new Map(), aggiungi: new Set(), togli: new Set(), scelto: null, attesa: null };
+    st = { pid, anno, mese, orig: new Set(r.nessuno || r.solo151 ? [] : r.giorni || []), sposta: new Map(), aggiungi: new Set(), togli: new Set(), scelto: null, attesa: null, blocco: null };
     const p = persone().find((x) => x.id === pid);
     $("var-titolo").textContent = `Variazione · ${MESI[mese - 1]} ${anno}`;
     $("var-chi").textContent = persone().length > 1 && p ? `Per ${p.nome}${p.parentela ? " (" + p.parentela + ")" : ""}` : "";
@@ -193,28 +204,59 @@
     if (st.scelto) {
       bar.hidden = false;
       $("var-az-testo").innerHTML = `<b>${NOMI_G[new Date(anno, mese - 1, st.scelto).getDay()]} ${st.scelto}</b>: cosa vuoi fare?`;
+      const bl = periodoDi(st.scelto);
+      $("var-sposta-tutto").hidden = bl.length < 2;
+      $("var-sposta-tutto").textContent = `🔁 Sposta tutto il periodo ${bl[0]}–${bl[bl.length - 1]}`;
+      $("var-sposta").textContent = bl.length > 1 ? `Sposta solo il ${st.scelto}` : "🔁 Sposta";
     } else bar.hidden = true;
-    if (st.attesa) msg(`Ora tocca il nuovo giorno che prende il posto del ${st.attesa}.`);
+    if (st.blocco) msg(`Ora tocca il primo giorno nuovo: i ${st.blocco.length} giorni dal ${st.blocco[0]} al ${st.blocco[st.blocco.length - 1]} si spostano da lì in avanti, di fila.`);
+    else if (st.attesa) msg(`Ora tocca il nuovo giorno che prende il posto del ${st.attesa}.`);
     // riepilogo
     const dd = dopo(), righe = [];
-    [...st.sposta].sort((x, y) => x[1] - y[1]).forEach(([o, nn]) => righe.push(`🔁 <b>${gg(nn)}</b> anziché ${gg(o)}`));
-    [...st.aggiungi].sort((x, y) => x - y).forEach((nn) => righe.push(`➕ <b>${gg(nn)}</b> (giorno in più)`));
+    const pp = (q) => (q[0] === q[1] ? gg(q[0]) : `dal ${gg(q[0])} al ${gg(q[1])}`);
+    righeVar({ sposta: [...st.sposta], aggiungi: [...st.aggiungi] }).forEach((x) => righe.push(x.vecchi ? `🔁 <b>${pp(x.nuovi)}</b> anziché ${pp(x.vecchi)}` : `➕ <b>${pp(x.nuovi)}</b> (in più)`));
     [...st.togli].sort((x, y) => x - y).forEach((o) => righe.push(`✖ ${gg(o)}: non vi è più esigenza`));
     $("var-elenco").innerHTML = righe.length ? righe.map((x) => `<div>${x}</div>`).join("") : '<span class="muted">Nessuna modifica: tocca un giorno rosso per spostarlo o toglierlo, oppure un giorno libero per aggiungerlo.</span>';
     const c = $("var-conta"); c.textContent = `${dd.size} / 3 giorni`;
     c.className = "contatore" + (dd.size > 3 ? " oltre" : dd.size === 3 ? " ok" : "");
-    $("var-crea").disabled = !righe.length || dd.size > 3 || !!st.attesa;
+    $("var-crea").disabled = !righe.length || dd.size > 3 || !!st.attesa || !!st.blocco;
     const sulTurno = [...nv].filter((x) => turni.has(x));
     $("var-turno-avv").hidden = !sulTurno.length;
     $("var-turno-avv").textContent = sulTurno.length ? `Attenzione: ${sulTurno.map((x) => gg(x)).join(", ")} ${sulTurno.length > 1 ? "sono tuoi turni" : "è un tuo turno"} di servizio. Se è così, scegli «Sì, si sovrappongono» qui sotto.` : "";
   }
   const gg = (d) => `${BREVI_G[new Date(st.anno, st.mese - 1, d).getDay()]} ${pad2(d)}`;
+  // giorni programmati di fila (non ancora cambiati) attorno al giorno d
+  function periodoDi(d) {
+    const resta = (x) => st.orig.has(x) && !st.sposta.has(x) && !st.togli.has(x);
+    if (!resta(d)) return [d];
+    let a = d, b = d;
+    while (resta(a - 1)) a--;
+    while (resta(b + 1)) b++;
+    const out = []; for (let x = a; x <= b; x++) out.push(x); return out;
+  }
+  function spostaBlocco(t) {
+    const { anno, mese } = st, nG = new Date(anno, mese, 0).getDate(), bl = st.blocco, nv = nuovi(), altri = altri104(anno, mese, st.pid);
+    const bloccaWE = anag().bloccaWE !== false, prob = [];
+    bl.forEach((o, i) => {
+      const n = t + i, wd = new Date(anno, mese - 1, n).getDay();
+      if (n > nG) prob.push(`il periodo esce dal mese`);
+      else if (st.orig.has(n) && !bl.includes(n)) prob.push(`il ${n} è già programmato`);
+      else if (nv.has(n)) prob.push(`il ${n} è già un giorno nuovo`);
+      else if (altri[n]) prob.push(`il ${n} è già 104 per ${altri[n].nome}`);
+      else if (bloccaWE && (wd === 0 || wd === 6)) prob.push(`il ${n} è ${NOMI_G[wd]} (bloccato)`);
+    });
+    if (prob.length) { msg(`Non posso spostare il periodo dal ${t}: ${[...new Set(prob)].join(", ")}. Scegli un altro giorno o sposta i giorni uno alla volta.`, true); return; }
+    bl.forEach((o, i) => { if (o !== t + i) st.sposta.set(o, t + i); });
+    st.blocco = null; st.attesa = null; st.scelto = null;
+    disegna();
+  }
   function tocca(d) {
     msg("");
+    if (st.blocco) { spostaBlocco(d); return; }
     const { anno, mese } = st, wd = new Date(anno, mese - 1, d).getDay(), we = wd === 0 || wd === 6, fe = festivi(anno)[`${mese}-${d}`];
     const Gg = NOMI_G[wd][0].toUpperCase() + NOMI_G[wd].slice(1);
     // annulla una modifica già fatta
-    for (const [o, n] of st.sposta) if (n === d || o === d) { st.sposta.delete(o); st.scelto = null; st.attesa = null; disegna(); return; }
+    for (const [o, n] of st.sposta) if (n === d || o === d) { st.sposta.delete(o); st.scelto = null; st.attesa = null; st.blocco = null; disegna(); return; }
     if (st.togli.has(d)) { st.togli.delete(d); disegna(); return; }
     if (st.aggiungi.has(d)) { st.aggiungi.delete(d); disegna(); return; }
     if (st.orig.has(d)) {
@@ -235,7 +277,8 @@
   }
   $("var-sposta").addEventListener("click", () => { st.attesa = st.scelto; st.scelto = null; disegna(); });
   $("var-togli").addEventListener("click", () => { st.togli.add(st.scelto); st.scelto = null; disegna(); });
-  $("var-annulla").addEventListener("click", () => { st.scelto = null; st.attesa = null; msg(""); disegna(); });
+  $("var-annulla").addEventListener("click", () => { st.scelto = null; st.attesa = null; st.blocco = null; msg(""); disegna(); });
+  $("var-sposta-tutto").addEventListener("click", () => { const bl = periodoDi(st.scelto); st.blocco = bl; st.attesa = bl[0]; st.scelto = null; disegna(); });
   const sovr = (si) => {
     $("var-sovr-no").classList.toggle("on", !si); $("var-sovr-si").classList.toggle("on", si);
     $("var-sovr-box").hidden = !si;

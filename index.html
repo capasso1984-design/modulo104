@@ -207,7 +207,7 @@ body.bloccata main{visibility:hidden}
 .cal-g.var-scelto{outline:3px dashed #8b5cf6;outline-offset:1px}
 @media (prefers-color-scheme:dark){.cal-g.var-via{background:#2b313b;color:#8b95a5}}
 .var-azioni{margin-top:.6rem;padding:.6rem .7rem;border-radius:12px;background:rgba(139,92,246,.1)}
-.var-azioni .row{margin-top:.4rem}.var-azioni .btn{margin-top:0;padding:.55rem .6rem;font-size:.9rem}
+.var-azioni .row{margin-top:.4rem}.var-azioni .btn{white-space:nowrap}#var-sposta-tutto{margin-top:.45rem;width:100%}.var-azioni .btn{margin-top:0;padding:.55rem .6rem;font-size:.9rem}
 .var-elenco{display:flex;flex-direction:column;gap:.3rem;font-size:.95rem}
 .lg-nuovo{background:linear-gradient(165deg,#ef4444,#7f1d1d);box-shadow:0 0 0 2px #8b5cf6}.lg-via{background:#d1d5db}.lg-104{background:linear-gradient(165deg,#ef4444,#7f1d1d)}
 .arc-az{display:flex;flex-direction:column;align-items:center;gap:5px;border:0;background:none;color:var(--txt);font:inherit;font-weight:700;font-size:.78rem;cursor:pointer;padding:.2rem 0}
@@ -530,6 +530,7 @@ body.bloccata main{visibility:hidden}
     <div class="cal-griglia" id="var-griglia"></div>
     <div class="var-azioni" id="var-azioni" hidden>
       <span id="var-az-testo"></span>
+      <button class="btn" id="var-sposta-tutto" hidden>🔁 Sposta tutto il periodo</button>
       <div class="row"><button class="btn" id="var-sposta">🔁 Sposta</button><button class="btn sec" id="var-togli">✖ Togli</button><button class="btn sec" id="var-annulla">Annulla</button></div>
     </div>
     <p id="var-msg" class="avviso" hidden></p>
@@ -795,9 +796,9 @@ body.bloccata main{visibility:hidden}
 <script src="pdf-lib.min.js"></script>
 <script src="word.js?v=2.5"></script>
 <script src="firma.js?v=2.7"></script>
-<script src="app.js?v=3.29"></script>
+<script src="app.js?v=3.30"></script>
 <script src="c151.js?v=1.0"></script>
-<script src="var.js?v=1.1"></script>
+<script src="var.js?v=1.2"></script>
 <script src="vedi.js?v=1.2"></script>
 <script src="prepara.js?v=3.0"></script>
 <script src="accesso.js?v=3.3"></script>
