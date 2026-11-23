@@ -39,13 +39,18 @@
       const r = await fetch("revoche.json?t=" + Date.now(), { cache: "no-store" });
       if (r.ok) {
         const lista = (await r.json()).h || [];
-        const mie = await improntePer(acc.nome, acc.id);
-        scrivi("m104_revocato", mie.some((x) => lista.includes(x)));
+        const [hN] = await improntePer(acc.nome, null), [hI] = await improntePer(null, acc.id);
+        scrivi("m104_revocato", hN && lista.includes(hN) ? "bloccato" : hI && lista.includes(hI) ? "sostituito" : false);
       } else if (r.status === 404) scrivi("m104_revocato", false);
     } catch (e) { /* senza internet: resta l'ultimo controllo */ }
-    return !!leggi("m104_revocato");
+    return leggi("m104_revocato") || false;
   }
-  function bloccaRevocato() {
+  function bloccaRevocato(tipo) {
+    if (tipo === "sostituito") {
+      // l'amministratore ti ha mandato un invito nuovo: quello vecchio non vale più
+      blocca("🔁 Il tuo invito è stato sostituito da uno nuovo: incolla qui il nuovo invito che ti è arrivato.");
+      return;
+    }
     blocca("⛔ Il tuo accesso a Modulo 104 è stato sospeso dall'amministratore. Se pensi sia un errore, contattalo.");
     $("bl-normale").hidden = true;
   }
@@ -87,7 +92,8 @@
     try {
       const d = await verificaInvito(c.v);
       scrivi("m104_accesso", { tipo: "invito", nome: d.n || "", id: d.i, quando: new Date().toISOString(), scade: d.e });
-      if (await controllaRevoca()) { bloccaRevocato(); return; }
+      const rev = await controllaRevoca();
+      if (rev) { bloccaRevocato(rev); return; }
       sblocca();
       window.M104 && window.M104.toast(`Benvenuto${d.n ? " " + d.n : ""}! App attivata ✔`, 5000);
       const installata = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
@@ -154,8 +160,14 @@
     const p = enc.encode(JSON.stringify(dati));
     const s = new Uint8Array(await crypto.subtle.sign(FIRMA, chiaveSegreta, p));
     const token = b64u(p) + "." + b64u(s);
-    const st = leggi("m104_inviti") || []; st.unshift({ nome, scade: dati.e, creato: Date.now(), i: dati.i }); scrivi("m104_inviti", st.slice(0, 50));
-    return { token, link: LINK_APP + "#invito=" + token, scade: new Date(dati.e * 1000) };
+    const st = leggi("m104_inviti") || [];
+    const vecchi = st.filter((x) => norm(x.nome) === norm(nome));
+    const resto = st.filter((x) => norm(x.nome) !== norm(nome));
+    resto.unshift({ nome, scade: dati.e, creato: Date.now(), i: dati.i, n: vecchi.reduce((t, x) => t + (x.n || 1), 0) + 1 });
+    scrivi("m104_inviti", resto.slice(0, 80));
+    // i link vecchi ancora validi vanno disattivati (quelli scaduti non funzionano già più)
+    const daSpegnere = vecchi.filter((x) => x.i && Date.now() < x.scade * 1000).map((x) => x.i);
+    return { token, link: LINK_APP + "#invito=" + token, scade: new Date(dati.e * 1000), daSpegnere };
   }
 
   // ------------------------------------------------------------ pagina "Invita un collega"
@@ -178,31 +190,43 @@
       return r.ok ? (await r.json()).h || [] : [];
     } catch (e) { return pubblicate || []; }
   }
+  // inviti raggruppati per collega (il più recente per primo)
+  function gruppi() {
+    const out = new Map();
+    for (const x of leggi("m104_inviti") || []) {
+      const k = norm(x.nome); if (!k) continue;
+      if (!out.has(k)) out.set(k, { k, nome: x.nome, ultimo: x, tutti: [] });
+      out.get(k).tutti.push(x);
+    }
+    return [...out.values()];
+  }
   async function disegnaStorico() {
-    const st = leggi("m104_inviti") || [];
+    const gs = gruppi();
     const box = $("inv-storico");
-    if (!st.length) { box.innerHTML = '<p class="muted">Nessun invito ancora</p>'; return; }
+    if (!gs.length) { box.innerHTML = '<p class="muted">Nessun invito ancora</p>'; return; }
     if (pubblicate === null) pubblicate = await leggiRevoche();
-    const righe = await Promise.all(st.slice(0, 30).map(async (x, k) => {
-      const imp = await improntePer(x.nome, x.i);
-      const bloc = imp.some((h) => pubblicate.includes(h));
-      const scaduto = Date.now() > x.scade * 1000;
+    const righe = await Promise.all(gs.map(async (g) => {
+      const [hN] = await improntePer(g.nome, null);
+      const bloc = pubblicate.includes(hN);
+      const x = g.ultimo, scaduto = Date.now() > x.scade * 1000;
       const quando = new Date(x.scade * 1000).toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" });
+      const n = g.tutti.reduce((t, y) => t + (y.n || 1), 0);
       return `<div class="inv-riga${bloc ? " bloc" : ""}">
-        <div class="inv-riga__t"><b>${esc(x.nome || "senza nome")}</b><small>${scaduto ? "link scaduto il" : "link valido fino al"} ${quando}</small>${bloc ? '<span class="inv-stato">⛔ Bloccato</span>' : ""}</div>
-        <button class="inv-b ${bloc ? "sblocca" : "blocca"}" data-k="${k}" data-az="${bloc ? "sblocca" : "blocca"}">${bloc ? "Sblocca" : "Blocca"}</button>
-        <button class="inv-b togli" data-k="${k}" data-az="togli" aria-label="Elimina dalla lista">✕</button>
+        <div class="inv-riga__t"><b>${esc(g.nome || "senza nome")}</b><small>${n > 1 ? `${n} inviti · ultimo ` : ""}${scaduto ? "link scaduto il" : "link valido fino al"} ${quando}</small>${bloc ? '<span class="inv-stato">⛔ Bloccato</span>' : ""}</div>
+        <button class="inv-b ${bloc ? "sblocca" : "blocca"}" data-g="${esc(g.k)}" data-az="${bloc ? "sblocca" : "blocca"}">${bloc ? "Sblocca" : "Blocca"}</button>
+        <button class="inv-b togli" data-g="${esc(g.k)}" data-az="togli" aria-label="Elimina dalla lista">✕</button>
       </div>`;
     }));
     box.innerHTML = righe.join("");
   }
   async function azioneInvito(e) {
     const b = e.target.closest(".inv-b"); if (!b) return;
-    const st = leggi("m104_inviti") || [], x = st[+b.dataset.k]; if (!x) return;
+    const g = gruppi().find((y) => y.k === b.dataset.g); if (!g) return;
+    const x = { nome: g.nome };
     const az = b.dataset.az;
     if (az === "togli") {
       if (!confirm(`Togliere ${x.nome} dalla lista degli inviti?\n(Serve solo a fare ordine: non blocca l'app. Per bloccarla usa «Blocca».)`)) return;
-      st.splice(+b.dataset.k, 1); scrivi("m104_inviti", st); disegnaStorico(); return;
+      scrivi("m104_inviti", (leggi("m104_inviti") || []).filter((y) => norm(y.nome) !== g.k)); disegnaStorico(); return;
     }
     const blocca = az === "blocca";
     if (blocca && !confirm(`Bloccare l'app a ${x.nome}?\nAl prossimo avvio con internet l'app gli mostrerà «accesso sospeso». Potrai sbloccarlo quando vuoi.`)) return;
@@ -210,11 +234,12 @@
       await serveCodice();
       if (!tokenGH) { $("gh-box").hidden = false; $("gh-box").scrollIntoView({ behavior: "smooth" }); throw new Error("Per bloccare serve collegare GitHub una volta sola: vedi il riquadro «Collegamento per i blocchi» qui sotto."); }
       b.disabled = true; b.textContent = "Attendi…";
-      const imp = await improntePer(x.nome, x.i);
-      const g = await scaricaRevocheGH();
-      let lista = g.lista.filter((h) => !imp.includes(h));
+      // blocco per nome: vale per tutti gli inviti di quel collega
+      const imp = await improntePer(x.nome, null);
+      const rv = await scaricaRevocheGH();
+      let lista = rv.lista.filter((h) => !imp.includes(h));
       if (blocca) lista = lista.concat(imp);
-      await pubblicaRevocheGH(lista, g.sha, `${blocca ? "Blocca" : "Sblocca"} un invito`);
+      await pubblicaRevocheGH(lista, rv.sha, `${blocca ? "Blocca" : "Sblocca"} un collega`);
       pubblicate = lista;
       window.M104.toast(blocca ? `${x.nome} bloccato ✔ (attivo entro un paio di minuti)` : `${x.nome} sbloccato ✔`, 5000);
       disegnaStorico();
@@ -272,6 +297,18 @@
       const inv = await creaInvito(nome, +$("inv-ore").value);
       const quando = inv.scade.toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" });
       $("inv-msg").textContent = `Invito per ${nome} creato: vale fino al ${quando}.`;
+      disegnaStorico();
+      if (inv.daSpegnere.length) {
+        if (tokenGH) {
+          try {
+            const imp = [];
+            for (const i of inv.daSpegnere) imp.push(...(await improntePer(null, i)));
+            const g = await scaricaRevocheGH();
+            await pubblicaRevocheGH(g.lista.filter((h) => !imp.includes(h)).concat(imp), g.sha, "Disattiva un invito sostituito");
+            $("inv-msg").textContent += " Il link mandato prima è stato disattivato.";
+          } catch (e) { $("inv-msg").textContent += " (Non sono riuscito a disattivare il link vecchio: " + e.message + ")"; }
+        } else $("inv-msg").textContent += " Il link vecchio resta valido fino alla sua scadenza (collega GitHub per disattivarlo subito).";
+      }
       await window.M104.condividiApp(conModulo, inv.link, `Invito personale per ${nome}, valido fino al ${quando}.`);
     } catch (e) { $("inv-msg").textContent = e.message; }
   }
@@ -305,10 +342,10 @@
       if (!attivo()) { await usaCodice(c.v); if (!attivo()) blocca($("bl-msg").textContent); return; }
     }
     if (!attivo()) { blocca(""); return; }
-    if (leggi("m104_revocato") && !isAdmin()) bloccaRevocato(); else sblocca();
-    const prima = !!leggi("m104_revocato");
+    const prima = isAdmin() ? false : leggi("m104_revocato");
+    if (prima) bloccaRevocato(prima); else sblocca();
     const ora = await controllaRevoca();
-    if (ora) bloccaRevocato(); else if (prima) sblocca();
+    if (ora) bloccaRevocato(ora); else if (prima) sblocca();
   }
   window.M104acc = { apriInvito, isAdmin, attivo, _verifica: verificaInvito, _estrai: estrai, _impronte: improntePer, _controlla: controllaRevoca };
   avvio();
