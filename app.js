@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.26";
+const VERSIONE = "3.27";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -63,6 +63,7 @@ function mostra(id) {
   if (id === "s-home") aggiornaAvvisi();
   if (id === "s-impost") anteprimaEmail();
   if (id === "s-archivio") disegnaArchivio();
+  if (id === "s-varmese" && window.M104var) M104var.elencoMesi();
   if (id === "s-copia" && window.M104copia) M104copia.mostraUltima();
   if (id === "s-compila") { costruisciPersonaSel(); if (apriPasso2) { apriPasso2 = false; caricaMeseDaArchivio(); passo(2); } else { $("risultato").style.display = "none"; passo(1); } }
   if ("s-" + location.hash.slice(1) !== id && !(id === "s-home" && !location.hash)) history.replaceState(null, "", id === "s-home" ? location.pathname : "#" + id.slice(2));

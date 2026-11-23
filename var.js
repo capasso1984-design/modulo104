@@ -150,7 +150,11 @@
     return s;
   }
   const nuovi = () => new Set([...st.sposta.values(), ...st.aggiungi]);
-  function apriVar(pid, anno, mese) {
+  let origine = "s-archivio";
+  function apriVar(pid, anno, mese, da) {
+    origine = da || "s-archivio";
+    $("var-indietro").dataset.vai = origine;
+    $("var-indietro-t").textContent = origine === "s-varmese" ? "Mesi" : "Archivio";
     const r = registro(pid, anno, mese);
     if (!r) { toast("Prima crea il modulo 104 di questo mese"); return; }
     st = { pid, anno, mese, orig: new Set(r.nessuno || r.solo151 ? [] : r.giorni || []), sposta: new Map(), aggiungi: new Set(), togli: new Set(), scelto: null, attesa: null };
@@ -286,7 +290,37 @@
   $("var-condividi").addEventListener("click", () => ultimo && condividi(ultimo));
   $("var-apri").addEventListener("click", () => ultimo && apriFile(ultimo, true));
   $("var-anteprima").addEventListener("click", () => ultimo && apriFile(ultimo, true));
-  $("var-chiudi").addEventListener("click", () => vai("s-archivio"));
+  $("var-chiudi").addEventListener("click", () => vai(origine === "s-varmese" ? "s-home" : origine));
+
+  // ------------------------------------------------------------ accesso rapido dal menu: scegli il mese
+  function elencoMesi() {
+    const a = archivio(), ps = persone(), oggi = new Date(), kOggi = `${oggi.getFullYear()}-${pad2(oggi.getMonth() + 1)}`;
+    const voci = [];
+    for (const [pid, mesi] of Object.entries(a)) {
+      const p = ps.find((x) => x.id === pid); if (!p) continue;
+      for (const [k, r] of Object.entries(mesi)) {
+        if (!r || r.solo151) continue;
+        voci.push({ pid, p, k, r, anno: +k.slice(0, 4), mese: +k.slice(5, 7) });
+      }
+    }
+    // prima il mese in corso e quelli futuri (dal più vicino), poi i passati (dal più recente)
+    const fut = voci.filter((v) => v.k >= kOggi).sort((x, y) => x.k.localeCompare(y.k));
+    const pas = voci.filter((v) => v.k < kOggi).sort((x, y) => y.k.localeCompare(x.k)).slice(0, 6);
+    const box = $("vm-elenco");
+    const tutte = fut.concat(pas);
+    if (!tutte.length) {
+      box.innerHTML = `<div class="card"><p class="muted">Non hai ancora programmato nessun mese. Prima usa <b>Compila il mese</b>: poi da qui potrai cambiarne i giorni.</p><button class="btn" data-vai="s-compila">Compila il mese</button></div>`;
+      return;
+    }
+    const piu = ps.length > 1;
+    box.innerHTML = tutte.map((v, i) => {
+      const gg = v.r.nessuno ? '<small>Nessun permesso chiesto (puoi aggiungere giorni)</small>'
+        : `<div class="vm-giorni">${(v.r.giorni || []).map((d) => `<span>${BREVI_G[new Date(v.anno, v.mese - 1, d).getDay()]} ${pad2(d)}</span>`).join("")}</div>`;
+      const nv = (v.r.var || []).length;
+      return `<button class="vm-riga" data-i="${i}"><span class="vm-t"><b>${MESI[v.mese - 1]} ${v.anno}</b>${piu ? `<small>${esc(etichetta104(v.p))} · ${esc(v.p.nome)}</small>` : ""}${gg}${nv ? `<small>🔁 già variato ${nv === 1 ? "una volta" : nv + " volte"}</small>` : ""}</span><span class="vm-var">Varia ›</span></button>`;
+    }).join("") + (pas.length ? '<p class="muted" style="margin-top:.8rem">Mostro il mese in corso, i prossimi e gli ultimi passati. Gli altri sono in Archivio.</p>' : "");
+    box.querySelectorAll("[data-i]").forEach((b) => b.addEventListener("click", () => { const v = tutte[+b.dataset.i]; apriVar(v.pid, v.anno, v.mese, "s-varmese"); }));
+  }
 
   // ristampa / condividi una variazione già fatta (dall'Archivio)
   async function documento(pid, anno, mese, i, az) {
@@ -334,6 +368,6 @@
     } catch (err) { box.innerHTML = `<p class="err">${esc(err.message)}</p>`; }
   });
 
-  window.M104var = { apri: apriVar, documento, crea, descrivi, carica, mostraStato, _riempi: riempiWord, _stato: () => st };
+  window.M104var = { elencoMesi, apri: apriVar, documento, crea, descrivi, carica, mostraStato, _riempi: riempiWord, _stato: () => st };
   carica().then(mostraStato);
 })();
