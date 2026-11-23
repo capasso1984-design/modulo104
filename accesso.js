@@ -148,12 +148,31 @@
     const g = leggi("m104_admin_gh");
     if (g) { try { tokenGH = dec.decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: deb64u(g.iv) }, await chiaveDaCodice(codice, deb64u(g.sale)), deb64u(g.dati))); } catch (e) { tokenGH = null; } }
   }
-  async function serveCodice() {
+  // codice amministratore in una finestrella, proprio dove si sta agendo (si chiede una volta per sessione)
+  function chiediCodice(titolo, testo, ok) {
+    return new Promise((fatto, annulla) => {
+      const f = $("cod-foglio"), inp = $("cod-input"), err = $("cod-err"), si = $("cod-si"), no = $("cod-no");
+      $("cod-titolo").textContent = titolo || "Codice amministratore";
+      $("cod-testo").textContent = testo || "";
+      si.textContent = ok || "Conferma";
+      inp.value = ""; err.textContent = ""; f.hidden = false;
+      setTimeout(() => inp.focus(), 50);
+      const chiudi = () => { f.hidden = true; si.onclick = no.onclick = inp.onkeydown = null; };
+      const prova = async () => {
+        if (!inp.value) { err.textContent = "Scrivi il codice"; return; }
+        si.disabled = true;
+        try { await sbloccaChiave(inp.value); chiudi(); fatto(); }
+        catch (e) { err.textContent = e.message; inp.select(); }
+        finally { si.disabled = false; }
+      };
+      si.onclick = prova;
+      inp.onkeydown = (e) => { if (e.key === "Enter") prova(); };
+      no.onclick = () => { chiudi(); annulla(new Error("annullato")); };
+    });
+  }
+  async function serveCodice(titolo, testo, ok) {
     if (chiaveSegreta) return;
-    const c = $("inv-codice").value;
-    if (!c) { $("inv-codice-box").hidden = false; $("inv-codice").focus(); throw new Error("Scrivi prima il codice amministratore (in alto)"); }
-    await sbloccaChiave(c);
-    $("inv-codice").value = ""; $("inv-codice-box").hidden = true;
+    await chiediCodice(titolo, testo, ok);
   }
   async function creaInvito(nome, ore) {
     const dati = { n: nome, e: Math.floor(Date.now() / 1000 + ore * 3600), i: b64u(crypto.getRandomValues(new Uint8Array(6))) };
@@ -176,7 +195,7 @@
     if (!isAdmin()) { window.M104.toast("Solo l'amministratore può condividere l'app"); return; }
     conModulo = !!modulo;
     $("inv-titolo").textContent = conModulo ? "Invita un collega (app + modulo)" : "Invita un collega";
-    $("inv-codice-box").hidden = !!chiaveSegreta;
+    $("inv-codice-box").hidden = true;
     $("inv-msg").textContent = "";
     disegnaStorico();
     statoGH();
@@ -229,9 +248,12 @@
       scrivi("m104_inviti", (leggi("m104_inviti") || []).filter((y) => norm(y.nome) !== g.k)); disegnaStorico(); return;
     }
     const blocca = az === "blocca";
-    if (blocca && !confirm(`Bloccare l'app a ${x.nome}?\nAl prossimo avvio con internet l'app gli mostrerà «accesso sospeso». Potrai sbloccarlo quando vuoi.`)) return;
+    const domanda = blocca ? `Al prossimo avvio con internet l'app di ${x.nome} mostrerà «accesso sospeso». Potrai sbloccarlo quando vuoi.`
+      : `${x.nome} potrà di nuovo usare l'app al prossimo avvio con internet.`;
     try {
-      await serveCodice();
+      // senza codice già inserito: la finestrella fa da conferma e chiede il codice insieme
+      if (chiaveSegreta) { if (!confirm(`${blocca ? "Bloccare" : "Sbloccare"} ${x.nome}?\n${domanda}`)) return; }
+      else await serveCodice(`${blocca ? "Bloccare" : "Sbloccare"} ${x.nome}?`, domanda + " Per confermare scrivi il codice amministratore.", blocca ? "Blocca" : "Sblocca");
       if (!tokenGH) { $("gh-box").hidden = false; $("gh-box").scrollIntoView({ behavior: "smooth" }); throw new Error("Per bloccare serve collegare GitHub una volta sola: vedi il riquadro «Collegamento per i blocchi» qui sotto."); }
       b.disabled = true; b.textContent = "Attendi…";
       // blocco per nome: vale per tutti gli inviti di quel collega
@@ -243,7 +265,7 @@
       pubblicate = lista;
       window.M104.toast(blocca ? `${x.nome} bloccato ✔ (attivo entro un paio di minuti)` : `${x.nome} sbloccato ✔`, 5000);
       disegnaStorico();
-    } catch (err) { $("inv-msg").textContent = err.message; window.M104.toast(err.message, 6000); disegnaStorico(); }
+    } catch (err) { if (err.message !== "annullato") { $("inv-msg").textContent = err.message; window.M104.toast(err.message, 6000); } disegnaStorico(); }
   }
 
   // ------------------------------------------------------------ collegamento GitHub (solo telefono amministratore)
@@ -273,7 +295,7 @@
     $("gh-msg").textContent = "";
     if (!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(t)) { $("gh-msg").textContent = "Non sembra un token GitHub: deve iniziare con github_pat_"; return; }
     try {
-      await serveCodice();
+      await serveCodice("Codice amministratore", "Il collegamento resta su questo telefono, protetto dal tuo codice.", "Collega");
       tokenGH = t;
       await scaricaRevocheGH();          // prova che funzioni
       const sale = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
@@ -282,7 +304,7 @@
       $("gh-token").value = "";
       statoGH(); pubblicate = null; disegnaStorico();
       window.M104.toast("Collegamento fatto ✔ Ora puoi bloccare gli inviti", 5000);
-    } catch (e) { tokenGH = null; $("gh-msg").textContent = e.message; }
+    } catch (e) { tokenGH = null; if (e.message !== "annullato") $("gh-msg").textContent = e.message; }
   }
   function scollegaGH() {
     if (!confirm("Togliere il collegamento GitHub da questo telefono? I blocchi già fatti restano.")) return;
@@ -293,7 +315,7 @@
     const nome = $("inv-nome").value.trim();
     if (!nome) { $("inv-msg").textContent = "Scrivi il nome del collega"; return; }
     try {
-      await serveCodice();
+      await serveCodice("Codice amministratore", `Per creare l'invito per ${nome} scrivi il tuo codice amministratore.`, "Crea l'invito");
       const inv = await creaInvito(nome, +$("inv-ore").value);
       const quando = inv.scade.toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" });
       $("inv-msg").textContent = `Invito per ${nome} creato: vale fino al ${quando}.`;
@@ -310,7 +332,7 @@
         } else $("inv-msg").textContent += " Il link vecchio resta valido fino alla sua scadenza (collega GitHub per disattivarlo subito).";
       }
       await window.M104.condividiApp(conModulo, inv.link, `Invito personale per ${nome}, valido fino al ${quando}.`);
-    } catch (e) { $("inv-msg").textContent = e.message; }
+    } catch (e) { if (e.message !== "annullato") $("inv-msg").textContent = e.message; }
   }
 
   function aggiornaCondivisione() {

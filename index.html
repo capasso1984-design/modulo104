@@ -752,6 +752,15 @@ body.bloccata main{visibility:hidden}
   </div>
 </section>
 </main>
+<div class="foglio" id="cod-foglio" hidden>
+  <div class="foglio__box" role="dialog" aria-modal="true" aria-labelledby="cod-titolo">
+    <h2 id="cod-titolo">Codice amministratore</h2>
+    <p class="muted" id="cod-testo"></p>
+    <input id="cod-input" type="password" autocomplete="off" placeholder="Codice amministratore" aria-label="Codice amministratore">
+    <p class="err" id="cod-err"></p>
+    <div class="row"><button class="btn sec" id="cod-no">Annulla</button><button class="btn" id="cod-si">Conferma</button></div>
+  </div>
+</div>
 <div class="foglio" id="conferma" hidden>
   <div class="foglio__box" role="dialog" aria-modal="true" aria-labelledby="cf-titolo">
     <h2 id="cf-titolo">Confermi?</h2>
@@ -786,12 +795,12 @@ body.bloccata main{visibility:hidden}
 <script src="pdf-lib.min.js"></script>
 <script src="word.js?v=2.5"></script>
 <script src="firma.js?v=2.7"></script>
-<script src="app.js?v=3.28"></script>
+<script src="app.js?v=3.29"></script>
 <script src="c151.js?v=1.0"></script>
 <script src="var.js?v=1.1"></script>
 <script src="vedi.js?v=1.2"></script>
 <script src="prepara.js?v=3.0"></script>
-<script src="accesso.js?v=3.2"></script>
+<script src="accesso.js?v=3.3"></script>
 <script src="copia.js?v=1.1"></script>
 </body>
 </html>
