@@ -1,6 +1,6 @@
 /* Modulo 104 - app telefono. Tutti i dati restano nel telefono (localStorage / IndexedDB). */
 "use strict";
-const VERSIONE = "3.30";
+const VERSIONE = "3.31";
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const NUMERI = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci","undici","dodici","tredici","quattordici","quindici","sedici","diciassette","diciotto","diciannove","venti","ventuno","ventidue","ventitré","ventiquattro","venticinque","ventisei","ventisette","ventotto","ventinove","trenta","trentuno"];
 const N_PERIODI = 3, N_ORARI = 8;
@@ -54,10 +54,18 @@ function toast(msg, ms = 3500) {
 // ---------------------------------------------------------------- navigazione
 // menu a schede (stile hub): ogni pagina ha un indirizzo #..., così il tasto "indietro" del telefono torna al menu
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-vai]"); if (b) { e.preventDefault(); vai(b.dataset.vai); } });
+// fogli dal basso del menu (come le home di Rebecca): si chiudono con ✕, toccando fuori o scegliendo una voce
+document.addEventListener("click", (e) => {
+  const apri = e.target.closest("[data-foglio]");
+  if (apri) { const d = document.getElementById(apri.dataset.foglio); if (d && d.showModal && !d.open) d.showModal(); return; }
+  if (e.target.closest("[data-foglio-chiudi]") || e.target.closest(".hfoglio .shub__riga")) { const d = e.target.closest("dialog"); if (d) d.close(); return; }
+  if (e.target.tagName === "DIALOG" && e.target.classList.contains("hfoglio")) e.target.close();
+});
 function vai(id) { const h = id === "s-home" ? "" : "#" + id.slice(2); if (location.hash !== h) location.hash = h; else mostra(id); }
 window.addEventListener("hashchange", () => mostra(location.hash ? "s-" + location.hash.slice(1) : "s-home"));
 function mostra(id) {
   if (!document.getElementById(id)) id = "s-home";
+  document.querySelectorAll("dialog.hfoglio[open]").forEach((d) => d.close());
   document.querySelectorAll("section").forEach((s) => s.classList.toggle("on", s.id === id));
   window.scrollTo(0, 0);
   if (id === "s-home") aggiornaAvvisi();
@@ -658,6 +666,7 @@ function aggiornaAvvisi() {
   $("desc-modulo").textContent = pacchetto ? `${pacchetto.nome} · preparato il ${pacchetto.creato}` : "Dal PC (.m104) o da un PDF del modulo";
   $("stato-modulo").textContent = pacchetto ? "OK" : "Da caricare";
   $("stato-modulo").className = "shub__stato" + (pacchetto ? "" : " shub__stato--no");
+  $("pal-profilo").hidden = !!(okA && pacchetto);
   const st = mem.get("m104_storico", []);
   $("storico").innerHTML = st.length
     ? st.slice(0, 12).map((s) => `<div class="shub__riga" style="cursor:default"><span class="shub__tondo"><svg class="sic"><use href="#i-elenco"/></svg></span><span class="shub__testo"><b>${esc(s.nome.replace(/\.pdf$/, ""))}</b><small>${esc(s.quando)} · ${esc(s.periodi)}</small></span></div>`).join("")

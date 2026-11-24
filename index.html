@@ -246,6 +246,51 @@ body.bloccata main{visibility:hidden}
 .badge{border-radius:99px;padding:.2rem .65rem;font-size:.75rem;font-weight:800;white-space:nowrap;background:rgba(var(--pri-rgb),.1);color:var(--pri)}
 .badge.ok{background:#dff3e4;color:#1e6b33}.badge.no{background:#fff4d6;color:#7a5a00}.badge.vuoto{background:var(--bg);color:var(--muted)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}.chip{background:#fee2e2;color:#b91c1c;border-radius:99px;padding:.2rem .65rem;font-size:.82rem;font-weight:700}
+/* ===== MENU stile nuovi hub di Rebecca (home_striscia.css, barra-telefono.css, icona-tonda.css) ===== */
+.ico3d{--ico:#3b82f6;--ico-size:34px;flex:0 0 auto;width:var(--ico-size);height:var(--ico-size);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;background:radial-gradient(circle at 32% 28%,#fff 0,var(--ico) 48%,rgba(15,30,70,.8) 155%);box-shadow:0 4px 9px rgba(20,40,90,.28),inset 0 1px 1px rgba(255,255,255,.85)}
+@supports (background:color-mix(in srgb,red 50%,black)){.ico3d{background:radial-gradient(circle at 32% 28%,#fff 0,var(--ico) 48%,color-mix(in srgb,var(--ico) 45%,black) 155%)}}
+.ico3d .sic{width:calc(var(--ico-size)*.5);height:calc(var(--ico-size)*.5);stroke-width:2.3;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+.ico3d--sm{--ico-size:34px}.ico3d--md{--ico-size:42px}.ico3d--lg{--ico-size:66px;border:4px solid #fff}
+.hfai{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.hfai__voce{display:flex;align-items:center;gap:.6rem;min-height:58px;padding:.6rem .8rem;border:0;border-radius:24px;font:inherit;font-weight:800;font-size:.92rem;text-align:left;background:var(--card);color:var(--txt);box-shadow:0 4px 12px rgba(20,40,80,.12);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .15s ease}
+.hfai__voce:active{transform:scale(.98)}
+.hfai__nome{display:flex;flex-direction:column;line-height:1.2;min-width:0;flex:1}
+.hfai__nome small{font-size:.72rem;font-weight:600;color:var(--muted);margin-top:2px}
+.hfai__voce--larga{grid-column:1/-1;min-height:78px;padding:.9rem 1rem .9rem 1rem;background:linear-gradient(135deg,#2563eb,#1e3a8a);color:#fff;box-shadow:0 10px 22px rgba(20,40,80,.25)}
+.hfai__voce--larga .hfai__nome{font-size:1.15rem}.hfai__voce--larga .hfai__nome small{color:rgba(255,255,255,.88);font-size:.8rem}
+.hfai__voce--larga .ico3d{--ico:#60a5fa;border:2px solid rgba(255,255,255,.75)}
+.hfai__piu{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.22);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.htess{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.htess__t{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:.35rem;text-align:left;padding:.9rem;border:0;border-radius:20px;background:var(--card);box-shadow:0 6px 18px rgba(20,40,80,.09);font:inherit;color:var(--txt);cursor:pointer;min-height:118px;-webkit-tap-highlight-color:transparent}
+.htess__t:active{transform:scale(.98)}
+.htess__nome{font-weight:800;font-size:1rem;line-height:1.2;display:flex;flex-direction:column}
+.htess__t small{font-size:.78rem;color:var(--muted);font-weight:400;line-height:1.3}
+.htess__t--largo{grid-column:1/-1;flex-direction:row;align-items:center;gap:.8rem;min-height:72px}
+.htess__t--largo small{margin-top:2px}
+.htess__pallino{position:absolute;top:12px;right:12px;width:12px;height:12px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 3px var(--card)}
+.htess__pallino[hidden]{display:none}
+.hfoglio{position:fixed;inset:auto 0 0 0;width:100%;max-width:640px;margin:0 auto;max-height:82vh;overflow:auto;border:0;border-radius:26px 26px 0 0;padding:1rem 1rem calc(1.5rem + env(safe-area-inset-bottom));background:#fff;color:var(--txt);box-shadow:0 -12px 40px rgba(20,40,80,.28)}
+.hfoglio[open]{animation:sale .22s ease-out}
+@keyframes sale{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+.hfoglio::backdrop{background:rgba(15,30,70,.45)}
+.hfoglio__testa{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem}
+.hfoglio__testa h2{margin:0;font-size:1.1rem;font-weight:800}
+.hfoglio__chiudi{width:40px;height:40px;border-radius:50%;border:0;background:rgba(var(--pri-rgb),.1);font-size:1rem;cursor:pointer;color:var(--txt)}
+.hfoglio__elenco{box-shadow:none;background:transparent;border-radius:0}
+.mbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:end;position:fixed;left:10px;right:10px;max-width:620px;margin:0 auto;bottom:calc(14px + env(safe-area-inset-bottom));height:78px;padding:0 4px 10px;border-radius:28px;z-index:8;background:rgba(255,255,255,.96);border:1px solid rgba(255,255,255,.9);box-shadow:0 8px 24px rgba(30,50,110,.18),inset 0 1px 0 rgba(255,255,255,.8);-webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%)}
+.mbar__btn{border:0;background:none;padding:0;margin:0;display:flex;flex-direction:column;align-items:center;gap:4px;font:inherit;font-size:11px;font-weight:600;color:#1e293b;min-width:0;cursor:pointer;-webkit-tap-highlight-color:transparent;line-height:1.2}
+.mbar__btn--attivo{color:#1e3a8a;font-weight:800}
+.mbar__btn--hub{margin-top:-34px;font-size:12px;font-weight:800;color:#1e1b5c}
+.mbar__btn:active .ico3d{transform:scale(.94)}
+body:has(#s-home.on) main{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+body:has(#s-home.on) #toast{bottom:calc(104px + env(safe-area-inset-bottom))}
+@media (prefers-color-scheme:dark){
+  .mbar{background:rgba(24,32,43,.94);border-color:rgba(255,255,255,.08);box-shadow:0 8px 24px rgba(0,0,0,.45)}
+  .mbar__btn{color:#cbd5e1}.mbar__btn--attivo,.mbar__btn--hub{color:#e7edf6}
+  .ico3d--lg{border-color:#18202b}
+  .hfoglio{background:#18202b}
+  .hfai__voce,.htess__t{box-shadow:0 6px 18px rgba(0,0,0,.35)}
+}
 .foglio{position:fixed;inset:0;z-index:15;background:rgba(15,25,45,.55);display:flex;align-items:flex-end;justify-content:center}
 .foglio[hidden]{display:none}
 .foglio__box{background:var(--card);width:100%;max-width:640px;border-radius:22px 22px 0 0;padding:20px 18px calc(22px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}
@@ -270,10 +315,12 @@ body.bloccata main{visibility:hidden}
   <symbol id="i-indietro" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></symbol>
   <symbol id="i-scudo" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6Z"/><path d="m9 12 2 2 4-4"/></symbol>
   <symbol id="i-piu" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-casa" viewBox="0 0 24 24"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></symbol>
+  <symbol id="i-var" viewBox="0 0 24 24"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></symbol>
 </svg>
 <main>
 
-<!-- MENU (stile hub della Cassa) -->
+<!-- MENU (stile nuovi hub di Rebecca: «Fai subito», tessere dei gruppi con foglio dal basso, barra in basso) -->
 <section id="s-home" class="on">
   <div class="testa">
     <img src="icon-192.png?v=3" alt="">
@@ -287,76 +334,94 @@ body.bloccata main{visibility:hidden}
   <div class="card inst" id="installa" style="display:none"></div>
   <div class="avviso" id="avvisi" style="display:none"></div>
 
-  <button class="shub__grande" data-vai="s-compila">
-    <svg class="sic"><use href="#i-penna"/></svg>
-    <span class="shub__grande-testo">
-      <span class="shub__grande-nome">Compila il mese</span>
-      <span class="shub__grande-desc">Scegli mese e giorni: il PDF si crea da solo, con la firma, pronto da inviare</span>
-    </span>
-    <span class="shub__grande-piu"><svg class="sic"><use href="#i-piu"/></svg></span>
-  </button>
-  <button class="shub__grande shub__grande--var" data-vai="s-varmese">
-    <svg class="sic" viewBox="0 0 24 24"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>
-    <span class="shub__grande-testo">
-      <span class="shub__grande-nome">Variazione programmazione</span>
-      <span class="shub__grande-desc">Cambia i giorni già chiesti: scegli il mese, sposta o togli</span>
-    </span>
-    <span class="shub__grande-piu"><svg class="sic"><use href="#i-freccia"/></svg></span>
-  </button>
-
-  <h2 class="shub__sezione">Il tuo profilo</h2>
-  <div class="shub__elenco">
-    <button class="shub__riga" data-vai="s-anag">
-      <span class="shub__tondo"><svg class="sic"><use href="#i-persona"/></svg></span>
-      <span class="shub__testo"><b>Anagrafica e firma</b><small id="desc-anag">Grado, nome, reparto, assistito e firma</small></span>
-      <span class="shub__stato" id="stato-anag"></span>
-      <svg class="sic freccia"><use href="#i-freccia"/></svg>
+  <h2 class="shub__sezione">Fai subito</h2>
+  <div class="hfai">
+    <button class="hfai__voce hfai__voce--larga" data-vai="s-compila">
+      <span class="ico3d ico3d--md" style="--ico:#3b82f6"><svg class="sic"><use href="#i-penna"/></svg></span>
+      <span class="hfai__nome">Compila il mese<small>Turni, giorni 104 e PDF firmato, pronto da inviare</small></span>
+      <span class="hfai__piu"><svg class="sic"><use href="#i-piu"/></svg></span>
     </button>
-    <button class="shub__riga" data-vai="s-modulo">
-      <span class="shub__tondo"><svg class="sic"><use href="#i-file"/></svg></span>
-      <span class="shub__testo"><b>Modulo da compilare</b><small id="desc-modulo">Il file .m104 preparato dal PC</small></span>
-      <span class="shub__stato" id="stato-modulo"></span>
-      <svg class="sic freccia"><use href="#i-freccia"/></svg>
+    <button class="hfai__voce" data-vai="s-varmese">
+      <span class="ico3d ico3d--sm" style="--ico:#8b5cf6"><svg class="sic"><use href="#i-var"/></svg></span>
+      <span class="hfai__nome">Variazione<small>Sposta o togli giorni</small></span>
     </button>
-    <button class="shub__riga" data-vai="s-impost">
-      <span class="shub__tondo"><svg class="sic"><use href="#i-busta"/></svg></span>
-      <span class="shub__testo"><b>Email e nome del file</b><small>Destinatario, oggetto e testo dell'email</small></span>
-      <svg class="sic freccia"><use href="#i-freccia"/></svg>
+    <button class="hfai__voce" data-vai="s-archivio">
+      <span class="ico3d ico3d--sm" style="--ico:#ef4444"><svg class="sic"><use href="#i-elenco"/></svg></span>
+      <span class="hfai__nome">Archivio<small id="desc-archivio">I mesi già fatti</small></span>
     </button>
   </div>
 
-  <h2 class="shub__sezione solo-admin">Condividi (solo amministratore)</h2>
-  <div class="shub__elenco solo-admin">
-    <button class="shub__riga" id="b-condividi">
-      <span class="shub__tondo"><svg class="sic"><use href="#i-condividi"/></svg></span>
-      <span class="shub__testo"><b>Invita un collega</b><small>Invito personale con scadenza: WhatsApp, Telegram, email, SMS…</small></span>
-      <svg class="sic freccia"><use href="#i-freccia"/></svg>
+  <h2 class="shub__sezione">Le mie pagine</h2>
+  <div class="htess">
+    <button class="htess__t" data-foglio="f-profilo">
+      <span class="ico3d ico3d--md" style="--ico:#14b8a6"><svg class="sic"><use href="#i-persona"/></svg></span>
+      <span class="htess__nome">Il tuo profilo</span>
+      <small>Anagrafica, firma, modulo, email</small>
+      <span class="htess__pallino" id="pal-profilo" hidden></span>
     </button>
-  </div>
-  <h2 class="shub__sezione">Aiuto</h2>
-  <div class="shub__elenco">
-    <button class="shub__riga" data-vai="s-copia">
-      <span class="shub__tondo"><svg class="sic"><use href="#i-scudo"/></svg></span>
-      <span class="shub__testo"><b>Copia di sicurezza</b><small>Salva i tuoi dati in un file e rimettili quando cambi telefono o icona</small></span>
-      <svg class="sic freccia"><use href="#i-freccia"/></svg>
+    <button class="htess__t" data-foglio="f-aiuto">
+      <span class="ico3d ico3d--md" style="--ico:#22a06b"><svg class="sic"><use href="#i-scudo"/></svg></span>
+      <span class="htess__nome">Aiuto e sicurezza</span>
+      <small>Copia dei dati, installazione</small>
     </button>
-    <button class="shub__riga" data-vai="s-aiuto">
-      <span class="shub__tondo"><svg class="sic"><use href="#i-telefono"/></svg></span>
-      <span class="shub__testo"><b>Installa sul telefono</b><small>Come mettere l'icona nella schermata Home</small></span>
-      <svg class="sic freccia"><use href="#i-freccia"/></svg>
+    <button class="htess__t htess__t--largo solo-admin" data-foglio="f-admin">
+      <span class="ico3d ico3d--md" style="--ico:#f59e0b"><svg class="sic"><use href="#i-condividi"/></svg></span>
+      <span class="htess__nome">Amministratore<small>Invita, blocca e sblocca i colleghi</small></span>
     </button>
   </div>
 
-  <h2 class="shub__sezione">Archivio</h2>
-  <div class="shub__elenco">
-    <button class="shub__riga" data-vai="s-archivio">
-      <span class="shub__tondo"><svg class="sic"><use href="#i-elenco"/></svg></span>
-      <span class="shub__testo"><b>Archivio permessi</b><small id="desc-archivio">I giorni presi mese per mese, per persona · esporta in PDF</small></span>
-      <svg class="sic freccia"><use href="#i-freccia"/></svg>
-    </button>
-  </div>
+  <dialog class="hfoglio" id="f-profilo" aria-label="Il tuo profilo">
+    <div class="hfoglio__testa"><h2>Il tuo profilo</h2><button class="hfoglio__chiudi" data-foglio-chiudi aria-label="Chiudi">✕</button></div>
+    <div class="shub__elenco hfoglio__elenco">
+      <button class="shub__riga" data-vai="s-anag">
+        <span class="ico3d ico3d--sm" style="--ico:#14b8a6"><svg class="sic"><use href="#i-persona"/></svg></span>
+        <span class="shub__testo"><b>Anagrafica e firma</b><small id="desc-anag">Grado, nome, reparto, assistito e firma</small></span>
+        <span class="shub__stato" id="stato-anag"></span>
+      </button>
+      <button class="shub__riga" data-vai="s-modulo">
+        <span class="ico3d ico3d--sm" style="--ico:#3b82f6"><svg class="sic"><use href="#i-file"/></svg></span>
+        <span class="shub__testo"><b>Modulo da compilare</b><small id="desc-modulo">Il file .m104 preparato dal PC</small></span>
+        <span class="shub__stato" id="stato-modulo"></span>
+      </button>
+      <button class="shub__riga" data-vai="s-impost">
+        <span class="ico3d ico3d--sm" style="--ico:#0ea5e9"><svg class="sic"><use href="#i-busta"/></svg></span>
+        <span class="shub__testo"><b>Email e nome del file</b><small>Destinatario, oggetto e testo dell'email</small></span>
+      </button>
+    </div>
+  </dialog>
+  <dialog class="hfoglio" id="f-aiuto" aria-label="Aiuto e sicurezza">
+    <div class="hfoglio__testa"><h2>Aiuto e sicurezza</h2><button class="hfoglio__chiudi" data-foglio-chiudi aria-label="Chiudi">✕</button></div>
+    <div class="shub__elenco hfoglio__elenco">
+      <button class="shub__riga" data-vai="s-copia">
+        <span class="ico3d ico3d--sm" style="--ico:#22a06b"><svg class="sic"><use href="#i-scudo"/></svg></span>
+        <span class="shub__testo"><b>Copia di sicurezza</b><small>Salva i tuoi dati in un file e rimettili quando cambi telefono o icona</small></span>
+      </button>
+      <button class="shub__riga" data-vai="s-aiuto">
+        <span class="ico3d ico3d--sm" style="--ico:#64748b"><svg class="sic"><use href="#i-telefono"/></svg></span>
+        <span class="shub__testo"><b>Installa sul telefono</b><small>Come mettere l'icona nella schermata Home</small></span>
+      </button>
+    </div>
+  </dialog>
+  <dialog class="hfoglio" id="f-admin" aria-label="Amministratore">
+    <div class="hfoglio__testa"><h2>Amministratore</h2><button class="hfoglio__chiudi" data-foglio-chiudi aria-label="Chiudi">✕</button></div>
+    <div class="shub__elenco hfoglio__elenco">
+      <button class="shub__riga" id="b-condividi">
+        <span class="ico3d ico3d--sm" style="--ico:#f59e0b"><svg class="sic"><use href="#i-condividi"/></svg></span>
+        <span class="shub__testo"><b>Invita un collega</b><small>Inviti con scadenza, blocca e sblocca chi li ha ricevuti</small></span>
+      </button>
+    </div>
+  </dialog>
+
   <div id="storico" hidden></div>
   <p class="firma-autore">Modulo 104 · ideata da <b>Mario Capasso</b></p>
+
+  <nav class="mbar" aria-label="Menu">
+    <button class="mbar__btn mbar__btn--attivo" data-vai="s-home"><span class="ico3d ico3d--md" style="--ico:#3b82f6"><svg class="sic"><use href="#i-casa"/></svg></span>Home</button>
+    <button class="mbar__btn" data-foglio="f-profilo"><span class="ico3d ico3d--md" style="--ico:#14b8a6"><svg class="sic"><use href="#i-persona"/></svg></span>Profilo</button>
+    <button class="mbar__btn mbar__btn--hub" data-vai="s-compila"><span class="ico3d ico3d--lg" style="--ico:#1d5fc4"><svg class="sic"><use href="#i-penna"/></svg></span>Compila</button>
+    <button class="mbar__btn" data-vai="s-archivio"><span class="ico3d ico3d--md" style="--ico:#ef4444"><svg class="sic"><use href="#i-elenco"/></svg></span>Archivio</button>
+    <button class="mbar__btn" data-foglio="f-aiuto"><span class="ico3d ico3d--md" style="--ico:#22a06b"><svg class="sic"><use href="#i-scudo"/></svg></span>Aiuto</button>
+  </nav>
 </section>
 
 <!-- COMPILA -->
@@ -796,7 +861,7 @@ body.bloccata main{visibility:hidden}
 <script src="pdf-lib.min.js"></script>
 <script src="word.js?v=2.5"></script>
 <script src="firma.js?v=2.7"></script>
-<script src="app.js?v=3.30"></script>
+<script src="app.js?v=3.31"></script>
 <script src="c151.js?v=1.0"></script>
 <script src="var.js?v=1.2"></script>
 <script src="vedi.js?v=1.2"></script>
